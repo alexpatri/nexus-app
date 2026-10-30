@@ -1,0 +1,31 @@
+/* Variáveis do Ionic a partir dos tokens semânticos: os componentes do Ionic
+   seguem o tema de cada sistema sem override por sistema. */
+:root {
+  --ion-background-color: var(--color-surface);
+  --ion-background-color-rgb: var(--color-surface-rgb);
+  --ion-text-color: var(--color-text);
+  --ion-text-color-rgb: var(--color-text-rgb);
+  --ion-font-family: var(--font-body);
+  --ion-border-color: var(--color-rule);
+  --ion-placeholder-color: var(--color-text-muted);
+
+  --ion-item-background: var(--color-surface-raised);
+  --ion-card-background: var(--color-surface-raised);
+  --ion-toolbar-background: var(--color-surface);
+  --ion-toolbar-color: var(--color-text);
+  --ion-toolbar-border-color: var(--color-rule);
+
+  --ion-color-primary: var(--color-accent);
+  --ion-color-primary-rgb: var(--color-accent-rgb);
+  --ion-color-primary-contrast: var(--color-on-accent);
+  --ion-color-primary-contrast-rgb: var(--color-on-accent-rgb);
+  --ion-color-primary-shade: var(--color-accent-shade);
+  --ion-color-primary-tint: var(--color-accent-tint);
+
+  --ion-color-danger: var(--color-danger);
+  --ion-color-danger-rgb: var(--color-danger-rgb);
+  --ion-color-danger-contrast: var(--color-on-danger);
+  --ion-color-danger-contrast-rgb: var(--color-on-danger-rgb);
+  --ion-color-danger-shade: var(--color-danger-shade);
+  --ion-color-danger-tint: var(--color-danger-tint);
+}

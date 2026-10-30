@@ -1,0 +1,55 @@
+/* Tokens base: iguais no app inteiro, inclusive dentro dos sistemas. */
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  --touch-min: 44px;
+
+  --duration-fast: 120ms;
+  --duration-medium: 240ms;
+  --duration-world-clip: 420ms;
+  --duration-world-fade: 320ms;
+
+  /* As famílias variam por tema; os tamanhos, não. Em rem, para acompanhar o
+     tamanho do texto escolhido na conta. */
+  --text-xs: 0.8125rem;
+  --text-sm: 0.9375rem;
+  --text-md: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.3125rem;
+  --text-2xl: 1.75rem;
+
+  --z-sticky: 10;
+  --z-overlay: 100;
+  --z-world: 1000;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 0ms;
+    --duration-medium: 0ms;
+    --duration-world-clip: 0ms;
+    --duration-world-fade: 0ms;
+  }
+}
+
+body {
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-body);
+}
+
+.numeric {
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
