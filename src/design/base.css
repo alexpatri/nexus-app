@@ -24,6 +24,9 @@
   --text-xl: 1.3125rem;
   --text-2xl: 1.75rem;
 
+  /* Nexus: cartão de personagem e de sistema. */
+  --nx-radius-card: 12px;
+
   --z-sticky: 10;
   --z-overlay: 100;
   --z-world: 1000;

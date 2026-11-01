@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { contrast } from './color'
 import type { Theme } from './contract'
 import { themes } from './themes'
+import { modules } from '@/systems'
 
 type Pair = [keyof Theme['color'], keyof Theme['color'], number]
 
@@ -27,6 +28,15 @@ const pairs: Pair[] = [
 describe.each(Object.entries(themes))('tema %s', (_, theme) => {
   it.each(pairs)('%s sobre %s ≥ %d', (fg, bg, min) => {
     expect(contrast(theme.color[fg], theme.color[bg])).toBeGreaterThanOrEqual(min)
+  })
+})
+
+// A tinta do cartão é texto sobre a faixa: sobre cada cor do fundo, ou sobre
+// accent quando não há cardArt.
+describe.each(modules.map((m) => [m.brand.name, m.brand] as const))('marca %s', (_, brand) => {
+  const colors = brand.cardArt?.match(/#[0-9a-f]{6}/gi) ?? [brand.accent]
+  it.each(colors)('tinta sobre %s ≥ 4,5', (bg) => {
+    expect(contrast(brand.ink, bg)).toBeGreaterThanOrEqual(4.5)
   })
 })
 
