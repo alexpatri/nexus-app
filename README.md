@@ -12,7 +12,7 @@ Node 24 (`.node-version`).
 ```sh
 npm install
 npm run dev         # servidor de desenvolvimento
-npm run test:unit   # Vitest
+npm run test:unit   # Vitest; baixa as fixtures antes, se faltarem
 npm run lint
 npm run build       # type-check + build com service worker
 ```
@@ -23,3 +23,11 @@ npm run build       # type-check + build com service worker
 Nexus e a ponte para as variáveis do Ionic. `applyTheme` escreve o tema na raiz
 do documento. Todo tema registrado em `themes.ts` passa pelo teste de contraste
 (WCAG 2.2 AA).
+
+## Fixtures
+
+O avaliador de fórmulas (`src/core/rules/expr.ts`) roda os mesmos casos que o
+core e o `validate.py`. `npm run fixtures` baixa da tag fixada em
+`package.json` (`nexus.systems`) os catálogos e as fixtures do
+`nexus-systems-api` para `test/fixtures/`, fora do Git. Só baixa de novo quando
+a tag muda; para subir de versão, troque a tag aqui e no `go.mod` do core.
