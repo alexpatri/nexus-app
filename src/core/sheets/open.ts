@@ -9,6 +9,8 @@ export interface OpenSheet {
   data: Record<string, unknown>
   autosave: Autosave
   changed: () => void
+  // Volta data a um estado anterior, sem salvar: desfaz uma mudança recusada.
+  restore: (data: Record<string, unknown>) => void
 }
 
 // A mesma ficha aberta em várias telas (um passo por página do Ionic) é um
@@ -29,6 +31,9 @@ function track(sheet: Sheet): OpenSheet {
     data: structuredClone(sheet.data),
     autosave,
     changed: () => autosave.schedule(JSON.parse(JSON.stringify(entry.data))),
+    restore: (data: Record<string, unknown>) => {
+      entry.data = data
+    },
   }) as OpenSheet
   open.set(sheet.id, entry)
   return entry

@@ -4,13 +4,19 @@ withDefaults(
     variant?: 'primary' | 'danger' | 'text'
     type?: 'button' | 'submit'
     busy?: boolean
+    disabled?: boolean
   }>(),
-  { variant: 'primary', type: 'button', busy: false },
+  { variant: 'primary', type: 'button', busy: false, disabled: false },
 )
 </script>
 
 <template>
-  <button :type="type" :class="['button', variant]" :disabled="busy" :aria-busy="busy">
+  <button
+    :type="type"
+    :class="['button', variant, { off: disabled && !busy }]"
+    :disabled="busy || disabled"
+    :aria-busy="busy"
+  >
     <slot />
   </button>
 </template>
@@ -24,12 +30,21 @@ withDefaults(
   font: inherit;
   font-size: var(--text-md);
   font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
   cursor: pointer;
 }
 
 .button:disabled {
   cursor: progress;
   opacity: 0.7;
+}
+
+.button.off {
+  cursor: not-allowed;
+  opacity: 1;
+  background: var(--color-surface-sunken);
+  color: var(--color-text-muted);
 }
 
 .primary {
