@@ -20,6 +20,7 @@ export const nexusTheme = {
     onAccent: '#FFFFFF',
     danger: '#B3261E',
     onDanger: '#FFFFFF',
+    success: '#18794E',
     focus: '#1E2126',
   },
   font: {

@@ -17,6 +17,9 @@ const pairs: Pair[] = [
   ['onDanger', 'danger', 4.5],
   ['accent', 'surface', 4.5],
   ['danger', 'surface', 4.5],
+  ['danger', 'surfaceRaised', 4.5],
+  ['success', 'surface', 4.5],
+  ['success', 'surfaceRaised', 4.5],
   ['border', 'surface', 3],
   ['focus', 'surface', 3],
 ]

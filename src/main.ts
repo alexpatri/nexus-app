@@ -13,10 +13,17 @@ import App from './App.vue'
 import router from './router'
 import { applyTheme } from './design/apply'
 import { nexusTheme } from './design/nexus.theme'
+import { session } from './core/session/session'
+import { applyTextSize, textSize } from './core/settings/textSize'
 
 applyTheme(nexusTheme, 'nexus')
+applyTextSize(textSize.value)
 
-// O mesmo visual no Android e no iOS: a identidade é do Nexus e de cada sistema.
-const app = createApp(App).use(IonicVue, { mode: 'md' }).use(router)
-
-router.isReady().then(() => app.mount('#app'))
+// A sessão vem do IndexedDB antes de o router entrar: a primeira navegação já
+// passa pelo guard, que precisa saber se há login.
+session.load().then(async () => {
+  // O mesmo visual no Android e no iOS: a identidade é do Nexus e de cada sistema.
+  const app = createApp(App).use(IonicVue, { mode: 'md' }).use(router)
+  await router.isReady()
+  app.mount('#app')
+})

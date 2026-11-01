@@ -19,9 +19,11 @@
     "@fontsource-variable/atkinson-hyperlegible-next": "^5.3.0",
     "@ionic/vue": "^9.0.10",
     "@ionic/vue-router": "^9.0.10",
+    "idb-keyval": "^6.3.0",
     "ionicons": "^8.1.0",
     "vue": "^3.5.42",
-    "vue-router": "^5.3.1"
+    "vue-router": "^5.3.1",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@tsconfig/node24": "^24.0.5",
@@ -36,6 +38,7 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-oxlint": "~1.82.0",
     "eslint-plugin-vue": "~10.11.0",
+    "fake-indexeddb": "^6.2.7",
     "jiti": "^2.7.0",
     "jsdom": "^30.0.1",
     "npm-run-all2": "^9.0.3",
