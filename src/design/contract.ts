@@ -19,6 +19,8 @@ export interface Theme {
     onAccent: string
     danger: string
     onDanger: string
+    // Regra atendida, como na lista de exigências da senha.
+    success: string
     focus: string
   }
   font: {

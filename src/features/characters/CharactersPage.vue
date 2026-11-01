@@ -1,24 +1,56 @@
 <script setup lang="ts">
-import { IonContent, IonHeader, IonPage, IonToolbar } from '@ionic/vue'
+import { IonContent, IonPage, onIonViewWillEnter } from '@ionic/vue'
+import { computed, ref } from 'vue'
 
+import { core } from '@/core/api/core'
+import { messageFor } from '@/core/api/messages'
+import { session } from '@/core/session/session'
+import NxBar from '@/core/ui/NxBar.vue'
 import NexusMark from '@/design/NexusMark.vue'
+
+interface CharacterListItem {
+  id: string
+  system: string
+  systemVersion: string
+  name: string
+}
+
+const characters = ref<CharacterListItem[]>()
+const error = ref('')
+
+const initial = computed(() => session.state.user?.name.trim().charAt(0).toUpperCase() || '?')
+
+// Os cartões chegam com o primeiro módulo de sistema; hoje o core não tem
+// sistema registrado e a lista vem sempre vazia.
+onIonViewWillEnter(async () => {
+  try {
+    characters.value = (await core.get<CharacterListItem[]>('/characters')).data
+    error.value = ''
+  } catch (err) {
+    error.value = messageFor(err)
+  }
+})
 </script>
 
 <template>
   <IonPage>
-    <IonHeader class="ion-no-border">
-      <IonToolbar>
-        <div class="bar">
-          <NexusMark />
-          <span class="brand">Nexus</span>
-        </div>
-      </IonToolbar>
-    </IonHeader>
+    <NxBar>
+      <NexusMark class="mark" />
+      <span class="brand">Nexus</span>
+      <RouterLink
+        to="/conta"
+        class="account"
+        :aria-label="`Conta de ${session.state.user?.name ?? ''}`"
+      >
+        <span aria-hidden="true">{{ initial }}</span>
+      </RouterLink>
+    </NxBar>
 
     <IonContent>
       <main class="content">
         <h1>Personagens</h1>
-        <div class="empty">
+        <p v-if="error" role="alert" class="error">{{ error }}</p>
+        <div v-else-if="characters && characters.length === 0" class="empty">
           <p class="empty-title">Nenhum personagem ainda</p>
           <p class="empty-text">
             Escolha um sistema e monte a primeira ficha. O rascunho fica salvo enquanto você monta.
@@ -30,18 +62,38 @@ import NexusMark from '@/design/NexusMark.vue'
 </template>
 
 <style scoped>
-.bar {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  height: 60px;
-  padding: 0 var(--space-2) 0 var(--space-4);
+.mark {
+  flex-shrink: 0;
 }
 
 .brand {
+  flex-grow: 1;
   font-size: var(--text-lg);
   font-weight: 700;
   letter-spacing: -0.01em;
+}
+
+.account {
+  width: var(--touch-min);
+  height: var(--touch-min);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  text-decoration: none;
+}
+
+.account span {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-size: var(--text-sm);
+  font-weight: 700;
 }
 
 .content {
@@ -53,6 +105,12 @@ h1 {
   font-size: var(--text-2xl);
   font-weight: 800;
   letter-spacing: -0.02em;
+}
+
+.error {
+  margin: var(--space-4) 0 0;
+  font-weight: 600;
+  color: var(--color-danger);
 }
 
 .empty {
