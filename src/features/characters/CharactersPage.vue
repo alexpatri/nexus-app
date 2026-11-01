@@ -1,30 +1,23 @@
 <script setup lang="ts">
-import { IonContent, IonPage, onIonViewWillEnter } from '@ionic/vue'
+import { IonContent, IonFooter, IonPage, onIonViewWillEnter } from '@ionic/vue'
 import { computed, ref } from 'vue'
 
-import { core } from '@/core/api/core'
+import { type CharacterListItem, listCharacters } from '@/core/api/characters'
 import { messageFor } from '@/core/api/messages'
 import { session } from '@/core/session/session'
 import NxBar from '@/core/ui/NxBar.vue'
 import NexusMark from '@/design/NexusMark.vue'
-
-interface CharacterListItem {
-  id: string
-  system: string
-  systemVersion: string
-  name: string
-}
+import CharacterCard from './CharacterCard.vue'
+import { sortForList } from './order'
 
 const characters = ref<CharacterListItem[]>()
 const error = ref('')
 
 const initial = computed(() => session.state.user?.name.trim().charAt(0).toUpperCase() || '?')
 
-// Os cartões chegam com o primeiro módulo de sistema; hoje o core não tem
-// sistema registrado e a lista vem sempre vazia.
 onIonViewWillEnter(async () => {
   try {
-    characters.value = (await core.get<CharacterListItem[]>('/characters')).data
+    characters.value = sortForList(await listCharacters())
     error.value = ''
   } catch (err) {
     error.value = messageFor(err)
@@ -50,7 +43,12 @@ onIonViewWillEnter(async () => {
       <main class="content">
         <h1>Personagens</h1>
         <p v-if="error" role="alert" class="error">{{ error }}</p>
-        <div v-else-if="characters && characters.length === 0" class="empty">
+        <ul v-else-if="characters?.length" class="list">
+          <li v-for="c in characters" :key="c.id">
+            <CharacterCard :character="c" />
+          </li>
+        </ul>
+        <div v-else-if="characters" class="empty">
           <p class="empty-title">Nenhum personagem ainda</p>
           <p class="empty-text">
             Escolha um sistema e monte a primeira ficha. O rascunho fica salvo enquanto você monta.
@@ -58,6 +56,26 @@ onIonViewWillEnter(async () => {
         </div>
       </main>
     </IonContent>
+
+    <IonFooter class="ion-no-border">
+      <div class="footer">
+        <RouterLink to="/novo" class="new">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.2"
+            stroke-linecap="round"
+            aria-hidden="true"
+          >
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+          Novo personagem
+        </RouterLink>
+      </div>
+    </IonFooter>
   </IonPage>
 </template>
 
@@ -105,6 +123,35 @@ h1 {
   font-size: var(--text-2xl);
   font-weight: 800;
   letter-spacing: -0.02em;
+}
+
+.list {
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.footer {
+  padding: var(--space-3) var(--space-4) var(--space-5);
+  background: var(--color-surface);
+  border-top: var(--border-width) solid var(--color-rule);
+}
+
+.new {
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border-radius: var(--radius-control);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-size: var(--text-md);
+  font-weight: 700;
+  text-decoration: none;
 }
 
 .error {

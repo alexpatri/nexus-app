@@ -5,7 +5,7 @@ export interface Metatype {
   id: string
   name: string
   attributes: Record<string, { min?: number; max?: number; start?: number }>
-  traits: { modifiers?: { target: string; add?: unknown }[] }[]
+  traits: { name: string; modifiers?: { target: string; add?: unknown }[] }[]
   sprintPerHit: number
 }
 
@@ -13,6 +13,7 @@ export interface PriorityRow {
   priority: string
   metatype: { metatype: string; specialPoints: number }[]
   attributes: number
+  magic: { awakening: string; attribute: { id: string; value: number } }[]
   skills: { points: number; groupPoints: number }
   resources: number
 }
@@ -50,6 +51,6 @@ export interface Mechanics {
 export interface Catalogs {
   system: { creation: { steps: { id: string }[] } }
   metatypes: { metatypes: Metatype[] }
-  priorities: { rows: PriorityRow[] }
+  priorities: { columns: { id: string; name: string }[]; rows: PriorityRow[] }
   mechanics: Mechanics
 }

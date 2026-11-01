@@ -43,5 +43,7 @@ export interface Brand {
   accent: string
   // Texto sobre a faixa do cartão.
   ink: string
-  cardArt?: Component
+  // Fundo CSS da faixa do cartão; sem ele, a faixa é accent. O teste de
+  // contraste confere ink sobre cada cor #RRGGBB que aparece aqui.
+  cardArt?: string
 }

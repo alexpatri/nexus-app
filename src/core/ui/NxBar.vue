@@ -2,7 +2,7 @@
 import { IonBackButton, IonButtons, IonHeader, IonToolbar } from '@ionic/vue'
 import { chevronBack } from 'ionicons/icons'
 
-defineProps<{ back?: string }>()
+withDefaults(defineProps<{ back?: string; backLabel?: string }>(), { backLabel: 'Voltar' })
 </script>
 
 <template>
@@ -10,7 +10,7 @@ defineProps<{ back?: string }>()
     <IonToolbar>
       <div class="bar" :class="{ 'with-back': back }">
         <IonButtons v-if="back">
-          <IonBackButton :default-href="back" :icon="chevronBack" text="" aria-label="Voltar" />
+          <IonBackButton :default-href="back" :icon="chevronBack" text="" :aria-label="backLabel" />
         </IonButtons>
         <slot />
       </div>

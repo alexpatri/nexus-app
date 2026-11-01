@@ -1,0 +1,11 @@
+/* As duas tintas (frontend-design-shadowrun.md, seção 2): caneta para o que o
+   jogador escolhe, impressão para o que a ficha calcula. Separadas de accent e
+   text para a regra sobreviver a um ajuste de paleta. */
+:root[data-system='shadowrun'] {
+  --sr-pen: #2340a8;
+  --sr-print: #1b2333;
+}
+
+:root[data-system='shadowrun'] input {
+  color: var(--sr-pen);
+}
