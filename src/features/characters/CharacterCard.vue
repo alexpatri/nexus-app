@@ -3,6 +3,7 @@ import { computed } from 'vue'
 
 import type { CharacterListItem } from '@/core/api/characters'
 import { moduleFor } from '@/systems'
+import BrandBand from './BrandBand.vue'
 
 const props = defineProps<{ character: CharacterListItem }>()
 
@@ -17,14 +18,7 @@ const status = computed(() =>
   progress.value ? `Rascunho, passo ${progress.value.step} de ${progress.value.total}` : 'Rascunho',
 )
 
-// Sistema sem módulo no app (catálogo sem telas) ainda aparece, com a faixa neutra.
-const band = computed(() =>
-  brand.value
-    ? { background: brand.value.cardArt ?? brand.value.accent, color: brand.value.ink }
-    : undefined,
-)
 const systemName = computed(() => brand.value?.name ?? props.character.system)
-const edition = computed(() => brand.value?.edition ?? props.character.systemVersion)
 
 const label = computed(() => {
   const state = draft.value
@@ -41,11 +35,8 @@ function segment(i: number) {
 </script>
 
 <template>
-  <article class="card" :aria-label="label">
-    <div class="band" :style="band">
-      <span class="system">{{ systemName }}</span>
-      <span class="edition">{{ edition }}</span>
-    </div>
+  <RouterLink :to="`/fichas/${character.sheet.id}`" class="card" :aria-label="label">
+    <BrandBand :system="character.system" :version="character.systemVersion" />
     <div class="body">
       <h2 class="name">{{ name }}</h2>
       <p class="subtitle">{{ summary.subtitle }}</p>
@@ -62,31 +53,18 @@ function segment(i: number) {
         </div>
       </dl>
     </div>
-  </article>
+  </RouterLink>
 </template>
 
 <style scoped>
 .card {
+  display: block;
+  color: inherit;
+  text-decoration: none;
   border: var(--border-width) solid var(--color-rule);
   border-radius: var(--nx-radius-card);
   background: var(--color-surface-raised);
   overflow: hidden;
-}
-
-.band {
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 14px;
-  background: var(--color-surface-sunken);
-  color: var(--color-text);
-  font-size: var(--text-xs);
-  font-weight: 800;
-}
-
-.edition {
-  font-weight: 600;
 }
 
 .body {

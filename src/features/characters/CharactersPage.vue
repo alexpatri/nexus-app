@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { IonContent, IonPage, onIonViewWillEnter } from '@ionic/vue'
+import { IonContent, IonFooter, IonPage, onIonViewWillEnter } from '@ionic/vue'
 import { computed, ref } from 'vue'
 
 import { type CharacterListItem, listCharacters } from '@/core/api/characters'
@@ -56,6 +56,26 @@ onIonViewWillEnter(async () => {
         </div>
       </main>
     </IonContent>
+
+    <IonFooter class="ion-no-border">
+      <div class="footer">
+        <RouterLink to="/novo" class="new">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.2"
+            stroke-linecap="round"
+            aria-hidden="true"
+          >
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+          Novo personagem
+        </RouterLink>
+      </div>
+    </IonFooter>
   </IonPage>
 </template>
 
@@ -112,6 +132,26 @@ h1 {
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+.footer {
+  padding: var(--space-3) var(--space-4) var(--space-5);
+  background: var(--color-surface);
+  border-top: var(--border-width) solid var(--color-rule);
+}
+
+.new {
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border-radius: var(--radius-control);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-size: var(--text-md);
+  font-weight: 700;
+  text-decoration: none;
 }
 
 .error {
