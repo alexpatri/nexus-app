@@ -37,3 +37,7 @@ __screenshots__/
 
 # Vite
 *.timestamp-*-*.mjs
+
+# Fixtures do nexus-systems-api (npm run fixtures)
+/test/fixtures/
+/test/.fixtures-*/

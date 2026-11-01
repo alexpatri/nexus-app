@@ -25,6 +25,29 @@ export interface LoaderOptions {
 
 const MANIFEST = 'system'
 
+// Mesma regra do validate.py e do core: "arquivo.json#a.b.c" segue chaves de
+// objeto; sem "#", é o arquivo inteiro.
+export function parsePointer(pointer: string) {
+  const [file, path = ''] = pointer.split('#', 2) as [string, string?]
+  return { file, path: path.split('.').filter(Boolean) }
+}
+
+export function follow(root: unknown, path: string[], pointer: string): unknown {
+  let node = root
+  for (const part of path) {
+    if (
+      node === null ||
+      typeof node !== 'object' ||
+      Array.isArray(node) ||
+      !Object.hasOwn(node, part)
+    ) {
+      throw new PointerNotFound(pointer)
+    }
+    node = (node as Record<string, unknown>)[part]
+  }
+  return node
+}
+
 // Catálogos são o mesmo arquivo para todo mundo e mudam raramente. O que está no
 // aparelho responde na hora, também sem conexão; a revalidação com If-None-Match
 // roda em segundo plano e o catálogo novo vale a partir da próxima abertura do
@@ -85,18 +108,9 @@ export function createCatalogLoader(opts: LoaderOptions) {
     return pending
   }
 
-  // Mesma regra do validate.py e do core: "arquivo.json#a.b.c" segue chaves de
-  // objeto; sem "#", é o arquivo inteiro.
   async function resolve(system: string, version: string, pointer: string): Promise<unknown> {
-    const [file, path = ''] = pointer.split('#', 2) as [string, string?]
-    let node = await catalog(system, version, file)
-    for (const part of path.split('.').filter(Boolean)) {
-      if (node === null || typeof node !== 'object' || Array.isArray(node) || !(part in node)) {
-        throw new PointerNotFound(pointer)
-      }
-      node = (node as Record<string, unknown>)[part]
-    }
-    return node
+    const { file, path } = parsePointer(pointer)
+    return follow(await catalog(system, version, file), path, pointer)
   }
 
   // Baixa o sistema inteiro, para a mesa funcionar sem conexão.
