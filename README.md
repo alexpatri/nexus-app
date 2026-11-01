@@ -27,7 +27,11 @@ do documento. Todo tema registrado em `themes.ts` passa pelo teste de contraste
 ## Fixtures
 
 O avaliador de fórmulas (`src/core/rules/expr.ts`) roda os mesmos casos que o
-core e o `validate.py`. `npm run fixtures` baixa da tag fixada em
-`package.json` (`nexus.systems`) os catálogos e as fixtures do
-`nexus-systems-api` para `test/fixtures/`, fora do Git. Só baixa de novo quando
-a tag muda; para subir de versão, troque a tag aqui e no `go.mod` do core.
+core e o `validate.py`. As estratégias de cada sistema
+(`src/systems/<sistema>/rules/`) rodam as fixtures de ficha com
+`src/core/rules/contract.ts`, o porte do `rulestest` do core.
+
+`npm run fixtures` baixa da tag fixada em `package.json` (`nexus.systems`) os
+catálogos e as fixtures do `nexus-systems-api` para `test/fixtures/`, fora do
+Git. Só baixa de novo quando a tag muda; para subir de versão, troque a tag aqui
+e no `go.mod` do core.
