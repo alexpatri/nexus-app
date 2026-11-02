@@ -54,7 +54,13 @@ onIonViewWillLeave(() => {
 
 <template>
   <IonPage>
-    <component :is="view" v-if="ready && !error" :open="open!" :rules="rules!" :step="step" />
+    <component
+      :is="view"
+      v-if="ready && !error"
+      :open="open!"
+      :rules="rules!"
+      v-bind="view === world!.Creation ? { step } : {}"
+    />
     <template v-else>
       <NxBar back="/" back-label="Voltar para personagens" />
       <IonContent>
