@@ -38,6 +38,15 @@ export interface Sheet {
     languages?: (SkillBuy & { key: string; name: string; native?: boolean })[]
   }
   resources?: ResourcesData
+  contacts?: Contact[]
+}
+
+export interface Contact {
+  key: string
+  name?: string
+  connection?: number
+  loyalty?: number
+  notes?: string
 }
 
 // Atributos que a ficha compra, na ordem de attributes.json.
@@ -68,6 +77,7 @@ export function stepOf(path: string): string {
   if ((path.startsWith('attributes.') || path.startsWith('skills.')) && path.endsWith('.karma')) {
     return 'karma'
   }
+  if (path.startsWith('contacts')) return 'karma'
   if (/^magic\.(spirits|sprites|powerPointsKarma)/.test(path)) return 'karma'
   if (path.startsWith('magic')) return 'magic'
   if (path.startsWith('qualities')) return 'qualities'
@@ -371,6 +381,16 @@ export function lenient(data: unknown, l: Lookup): Violation[] {
         return true
       case 'resources':
         lenientResources(path, v, vs, keys, l)
+        return true
+      case 'contacts':
+        list(path, v, vs, keys, (path, m) =>
+          object(path, m, vs, (p, key, v) => {
+            if (key === 'key' || key === 'name' || key === 'notes') expectString(p, v, vs)
+            else if (key === 'connection' || key === 'loyalty') expectInteger(p, v, vs)
+            else return false
+            return true
+          }),
+        )
         return true
       case 'skills':
         lenientSkills(path, v, vs, keys, l)

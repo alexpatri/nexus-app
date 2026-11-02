@@ -69,7 +69,15 @@ export interface Mechanics {
     karma: number
     qualities: { positiveMax: number; negativeMax: number }
     skills: { knowledgePoints: unknown; maxRating: number; specializationCost: number }
-    contacts: { karma: unknown }
+    contacts: {
+      karma: unknown
+      minConnection: number
+      maxConnection: number
+      minLoyalty: number
+      maxLoyalty: number
+      minKarma: number
+      maxKarmaPerContact: number
+    }
     specialAttributeMax: Record<string, number>
     resources: {
       karmaToNuyen: { rate: number; maxKarma: number }
