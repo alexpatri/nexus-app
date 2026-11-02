@@ -8,7 +8,7 @@ import { catalogs } from '@/core/catalog/catalogs'
 import type { RulesSystem } from '@/core/rules/system'
 import { type OpenSheet, openSheet } from '@/core/sheets/open'
 import NxBar from '@/core/ui/NxBar.vue'
-import { arriveInWorld, coverForReturn, worldProgress } from '@/core/ui/world'
+import { arriveInWorld, coverForReturn } from '@/core/ui/world'
 import { applyTheme } from '@/design/apply'
 import { moduleFor, type SystemModule, type SystemWorld } from '@/systems'
 
@@ -25,19 +25,15 @@ const view = computed(() =>
 )
 
 async function load() {
-  worldProgress(0.2)
   open.value = await openSheet(props.id)
   module.value = moduleFor(open.value.sheet.system, open.value.sheet.systemVersion)
   if (!module.value) {
     error.value = 'Este sistema ainda não tem telas no app.'
     return
   }
-  worldProgress(0.5)
   world.value = await module.value.load()
   applyTheme(world.value.theme, module.value.id)
-  worldProgress(0.75)
   rules.value = await world.value.rules(catalogs)
-  worldProgress(1)
 }
 
 onIonViewWillEnter(async () => {

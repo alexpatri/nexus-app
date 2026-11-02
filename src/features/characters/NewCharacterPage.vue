@@ -21,12 +21,12 @@ async function start(module: SystemModule, event: MouseEvent) {
   error.value = ''
   const card = (event.currentTarget as HTMLElement).getBoundingClientRect()
   try {
-    const [{ character, sheet }, world] = await Promise.all([
+    const [{ sheet }, world] = await Promise.all([
       createCharacter(module.id, module.version),
       module.load(),
     ])
     adopt(sheet)
-    await enterWorld(card, splashOf(module.brand), character.id)
+    await enterWorld(card, splashOf(module.brand))
     applyTheme(world.theme, module.id)
     router.push(`/fichas/${sheet.id}`)
   } catch (err) {

@@ -40,7 +40,7 @@ async function open(event: MouseEvent) {
   event.preventDefault()
   if (brand.value) {
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
-    await enterWorld(rect, splashOf(brand.value), props.character.id)
+    await enterWorld(rect, splashOf(brand.value))
   }
   await router.push(to.value)
 }
@@ -53,7 +53,7 @@ function segment(i: number) {
 
 <template>
   <RouterLink v-slot="{ href }" :to="to" custom>
-    <a :href="href" class="card" :aria-label="label" :data-character="character.id" @click="open">
+    <a :href="href" class="card" :aria-label="label" @click="open">
       <BrandBand :system="character.system" :version="character.systemVersion" />
       <div class="body">
         <h2 class="name">{{ name }}</h2>

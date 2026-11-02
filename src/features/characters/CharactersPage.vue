@@ -6,7 +6,7 @@ import { type CharacterListItem, listCharacters } from '@/core/api/characters'
 import { messageFor } from '@/core/api/messages'
 import { session } from '@/core/session/session'
 import NxBar from '@/core/ui/NxBar.vue'
-import { returnToCard } from '@/core/ui/world'
+import { returnFromWorld } from '@/core/ui/world'
 import NexusMark from '@/design/NexusMark.vue'
 import CharacterCard from './CharacterCard.vue'
 import { sortForList } from './order'
@@ -17,7 +17,7 @@ const error = ref('')
 const initial = computed(() => session.state.user?.name.trim().charAt(0).toUpperCase() || '?')
 
 onIonViewDidEnter(() => {
-  void returnToCard((id) => document.querySelector(`[data-character="${CSS.escape(id)}"]`))
+  void returnFromWorld()
 })
 
 onIonViewWillEnter(async () => {
