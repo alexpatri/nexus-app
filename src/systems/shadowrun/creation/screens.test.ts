@@ -1,6 +1,7 @@
 import { mount } from '@vue/test-utils'
 import { afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { computed, defineComponent, h, reactive } from 'vue'
+import { createMemoryHistory, createRouter } from 'vue-router'
 
 import { readFixture, shadowrunCatalogs } from '../../../../test/shadowrun'
 import { createShadowrun, type Derived } from '../rules'
@@ -8,6 +9,8 @@ import AttributesScreen from './AttributesScreen.vue'
 import { buildUiCatalogs, uiCatalogs } from './catalogs'
 import type { Edit } from './edit'
 import { provideFooter } from './footer'
+import FinalScreen from './FinalScreen.vue'
+import FinishingScreen from './FinishingScreen.vue'
 import KarmaScreen from './KarmaScreen.vue'
 import MagicScreen from './MagicScreen.vue'
 import MetatypeScreen from './MetatypeScreen.vue'
@@ -36,7 +39,12 @@ const button = (text: string) =>
 
 // Monta a tela como o CreationFlow: data reativo, edit que aplica a mudança e
 // o rodapé exposto para conferir.
-function setup(screen: object, initial: Record<string, unknown>, step?: string) {
+function setup(
+  screen: object,
+  initial: Record<string, unknown>,
+  step?: string,
+  extra: (data: Record<string, unknown>) => Record<string, unknown> = () => ({}),
+) {
   const state = reactive({ data: initial })
   const edit: Edit = (change) => change(state.data)
   let footer!: ReturnType<typeof provideFooter>
@@ -47,9 +55,19 @@ function setup(screen: object, initial: Record<string, unknown>, step?: string) 
       rules.validate(state.data, 'strict').filter((v) => !step || v.step === step),
     )
     return () =>
-      h(screen, { data: state.data, edit, derived: derived.value, violations: violations.value })
+      h(screen, {
+        data: state.data,
+        edit,
+        derived: derived.value,
+        violations: violations.value,
+        ...extra(state.data),
+      })
   })
-  const w = mount(Host, { attachTo: document.body })
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [{ path: '/:p(.*)*', component: { render: () => null } }],
+  })
+  const w = mount(Host, { attachTo: document.body, global: { plugins: [router] } })
   return {
     w,
     data: () => state.data,
@@ -561,5 +579,68 @@ describe('KarmaScreen', () => {
     expect(ct.connection).toBe(6)
     expect(button('Aumentar Conexão de contato').hasAttribute('disabled')).toBe(true)
     expect(button('Aumentar Lealdade de contato').hasAttribute('disabled')).toBe(true)
+  })
+})
+
+describe('passos finais', () => {
+  const fixture = (name: string) =>
+    structuredClone(
+      (readFixture(`fixtures/shadowrun/5e/${name}.json`) as { data: Record<string, unknown> }).data,
+    )
+  const base = () => ({ base: '/fichas/x' })
+
+  it('pede a rolagem e mostra o nuyen inicial da Clara', async () => {
+    const s = setup(FinalScreen, fixture('clara-final'), 'final-calculations', base)
+    expect(s.w.text()).toContain('Role 3D6')
+    expect(s.alert()).toBe('Falta informar a rolagem do nuyen inicial.')
+    const input = s.w.find('#roll')
+    ;(input.element as HTMLInputElement).value = '10'
+    await input.trigger('change')
+    expect((s.data().resources as { startingNuyenRoll: number }).startingNuyenRoll).toBe(10)
+    expect(s.w.find('.result').text()).toContain('2.240 ¥')
+    expect(s.alert()).toBe('')
+  })
+
+  it('lista o que se perde, com volta ao passo', () => {
+    const data = fixture('beto-final')
+    ;(data.contacts as unknown[]).pop()
+    const s = setup(FinalScreen, data, 'final-calculations', base)
+    const li = s.w.findAll('.losses li')
+    expect(li.map((x) => x.text())).toContain(
+      '4 de carma gratuito em contatos sem usoVoltar ao passo',
+    )
+    expect(li[0]!.find('a').attributes('href')).toBe('/fichas/x/karma')
+  })
+
+  it('só deixa finalizar sem pendências e mostra o nome no cartão', async () => {
+    const data = fixture('beto-final')
+    const calls: string[] = []
+    const s = setup(FinishingScreen, data, 'finishing', (d) => ({
+      ...base(),
+      all: rules.validate(d, 'strict'),
+      finalize: async () => void calls.push('finalize'),
+    }))
+    expect(s.w.find('.sin .who').text()).toBe('Beto')
+    expect(s.w.find('.pending').text()).toContain('Passo 7, Carma e contatos: 1 pendência(s)')
+    expect(s.w.find('button:not(.add)').attributes('disabled')).toBeDefined()
+
+    const name = s.w.find('#identity-name')
+    ;(name.element as HTMLInputElement).value = 'Beto Mão Pesada'
+    await name.trigger('change')
+    expect((s.data().identity as { name: string }).name).toBe('Beto Mão Pesada')
+    expect(s.w.find('.sin .who').text()).toBe('Beto Mão Pesada')
+  })
+
+  it('finaliza a ficha sem pendências', async () => {
+    const calls: string[] = []
+    const s = setup(FinishingScreen, fixture('beto-resources'), 'finishing', (d) => ({
+      ...base(),
+      all: rules.validate(d, 'strict'),
+      finalize: async () => void calls.push('finalize'),
+    }))
+    expect(s.w.text()).toContain('A ficha pode ser finalizada.')
+    await s.w.find('button:not(.add)').trigger('click')
+    await new Promise((r) => setTimeout(r))
+    expect(calls).toEqual(['finalize'])
   })
 })
