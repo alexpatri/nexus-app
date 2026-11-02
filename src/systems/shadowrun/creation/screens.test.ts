@@ -1,5 +1,5 @@
 import { mount } from '@vue/test-utils'
-import { beforeAll, describe, expect, it } from 'vitest'
+import { afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { computed, defineComponent, h, reactive } from 'vue'
 
 import { shadowrunCatalogs } from '../../../../test/shadowrun'
@@ -10,6 +10,7 @@ import type { Edit } from './edit'
 import { provideFooter } from './footer'
 import MetatypeScreen from './MetatypeScreen.vue'
 import PrioritiesScreen from './PrioritiesScreen.vue'
+import QualitiesScreen from './QualitiesScreen.vue'
 
 const catalogs = shadowrunCatalogs()
 const rules = createShadowrun(catalogs)
@@ -18,20 +19,33 @@ beforeAll(() => {
   uiCatalogs.value = buildUiCatalogs(catalogs)
 })
 
+afterEach(() => {
+  document.body.innerHTML = ''
+})
+
+// O Seletor vai para o body (Teleport), fora da árvore do wrapper.
+const inBody = (sel: string) => [...document.body.querySelectorAll<HTMLElement>(sel)]
+const button = (text: string) =>
+  inBody('button').find(
+    (b) => b.getAttribute('aria-label') === text || b.textContent?.trim().startsWith(text),
+  )!
+
 // Monta a tela como o CreationFlow: data reativo, edit que aplica a mudança e
 // o rodapé exposto para conferir.
-function setup(screen: object, initial: Record<string, unknown>) {
+function setup(screen: object, initial: Record<string, unknown>, step?: string) {
   const state = reactive({ data: initial })
   const edit: Edit = (change) => change(state.data)
   let footer!: ReturnType<typeof provideFooter>
   const Host = defineComponent(() => {
     footer = provideFooter()
     const derived = computed(() => rules.derive(state.data) as Derived)
-    const violations = computed(() => rules.validate(state.data, 'strict'))
+    const violations = computed(() =>
+      rules.validate(state.data, 'strict').filter((v) => !step || v.step === step),
+    )
     return () =>
       h(screen, { data: state.data, edit, derived: derived.value, violations: violations.value })
   })
-  const w = mount(Host)
+  const w = mount(Host, { attachTo: document.body })
   return {
     w,
     data: () => state.data,
@@ -132,5 +146,99 @@ describe('AttributesScreen', () => {
     const s = setup(AttributesScreen, grok())
     expect(s.w.find('[aria-label="Baixar Trunfo"]').exists()).toBe(false)
     expect(s.w.text()).toContain('Sem pontos especiais; sobe com carma no passo 7')
+  })
+})
+
+describe('QualitiesScreen', () => {
+  const troll = () => ({
+    identity: { name: 'Grok' },
+    priorities: { ...GROK },
+    metatype: 'troll',
+    qualities: [
+      { key: 'q1', id: 'quick-healer' },
+      { key: 'q2', id: 'bad-rep' },
+    ] as unknown[],
+  })
+
+  it('separa positivas e negativas e mostra o carma', () => {
+    const s = setup(QualitiesScreen, troll(), 'qualities')
+    const sides = s.w.findAll('.side')
+    expect(sides[0]!.text()).toContain('Curandeiro Rápido')
+    expect(sides[1]!.text()).toContain('Má Reputação')
+    expect(s.status()).toBe('Carma: 3 gastos de 32')
+    expect(s.w.text()).toContain('O personagem tem 32 de carma: 25 iniciais e 7 das negativas.')
+  })
+
+  it('adiciona pelo seletor e abre a linha nova', async () => {
+    const s = setup(QualitiesScreen, troll(), 'qualities')
+    button('Adicionar positiva').click()
+    await s.w.vm.$nextTick()
+    inBody('.item')
+      .find((b) => b.textContent?.includes('Ambidestria'))!
+      .click()
+    await s.w.vm.$nextTick()
+    button('Adicionar por 4 de carma').click()
+    await s.w.vm.$nextTick()
+
+    const added = (s.data().qualities as { id: string; key: string }[]).at(-1)!
+    expect(added.id).toBe('ambidextrous')
+    expect(added.key).toMatch(/^[0-9a-f]{8}$/)
+    expect(inBody('[role="dialog"]')).toHaveLength(0)
+    expect(s.w.find('[aria-expanded="true"]').text()).toContain('Ambidestria')
+  })
+
+  it('bloqueia no seletor o que não cabe, com o motivo', async () => {
+    const s = setup(
+      QualitiesScreen,
+      { ...troll(), qualities: [{ key: 'q1', id: 'lucky' }] },
+      'qualities',
+    )
+    button('Adicionar positiva').click()
+    await s.w.vm.$nextTick()
+    const note = (name: string) =>
+      inBody('.item')
+        .find((b) => b.querySelector('.name')?.textContent === name)!
+        .querySelector('.note')!.textContent
+    expect(note('Sortudo')).toBe('Já está na ficha')
+    expect(note('Afinidade Espiritual')).toBe('Só para despertos')
+    expect(note('Aparência Humana')).toBe('Sem nível')
+    button('Fechar').click()
+    await s.w.vm.$nextTick()
+    button('Adicionar negativa').click()
+    await s.w.vm.$nextTick()
+    expect(note('Elfo Poser')).toBe('Só para humano')
+  })
+
+  it('pede a opção que falta e grava a escolhida', async () => {
+    const s = setup(
+      QualitiesScreen,
+      { ...troll(), qualities: [{ key: 'q1', id: 'addiction' }] },
+      'qualities',
+    )
+    expect(s.w.find('.problem').text()).toBe('Vício: escolha uma opção.')
+    await s.w.find('.row').trigger('click')
+    const moderate = s.w
+      .findAll('input[type="radio"]')
+      .find((r) => r.element.parentElement?.textContent?.includes('Moderado'))!
+    await moderate.setValue(true)
+    expect(s.data().qualities).toEqual([{ key: 'q1', id: 'addiction', option: 'moderate' }])
+    expect(s.w.find('.problem').exists()).toBe(false)
+    expect(s.w.find('.karma').text()).toContain('9')
+  })
+
+  it('sobe o nível até o máximo e remove', async () => {
+    const s = setup(
+      QualitiesScreen,
+      { ...troll(), qualities: [{ key: 'q1', id: 'will-to-live', rating: 2 }] },
+      'qualities',
+    )
+    await s.w.find('.row').trigger('click')
+    await s.w.find('[aria-label="Subir o nível de Desejo de Viver"]').trigger('click')
+    expect(s.data().qualities).toEqual([{ key: 'q1', id: 'will-to-live', rating: 3 }])
+    expect(
+      s.w.find('[aria-label="Subir o nível de Desejo de Viver"]').attributes('disabled'),
+    ).toBeDefined()
+    await s.w.find('.remove').trigger('click')
+    expect(s.data()).not.toHaveProperty('qualities')
   })
 })
