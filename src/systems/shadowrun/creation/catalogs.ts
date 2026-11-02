@@ -14,11 +14,13 @@ export interface UiCatalogs {
   attributes: (Named & { abbr: string; category: string })[]
   awakenings: Named[]
   qualities: (Quality & { name: string; desc: string })[]
-  skills: (Skill & { name: string; specializations: string[] })[]
+  skills: (Skill & { name: string; specializations: string[]; category: string })[]
   groups: (Named & { skills: string[] })[]
   knowledgeCategories: (Named & { attribute: string })[]
   mentors: Named[]
   spiritTypes: Named[]
+  // Nível máximo de perícia na criação (mechanics.json#creation.skills.maxRating).
+  skillMaxRating: number
   lookup: Lookup
 }
 
@@ -40,6 +42,7 @@ export function buildUiCatalogs(c: RawCatalogs): UiCatalogs {
     knowledgeCategories: c.skills.knowledge.categories as UiCatalogs['knowledgeCategories'],
     mentors: c.mentors.mentors as Named[],
     spiritTypes: c.traditions.spiritTypes as Named[],
+    skillMaxRating: c.mechanics.creation.skills.maxRating,
     lookup: lookup(c),
   }
 }

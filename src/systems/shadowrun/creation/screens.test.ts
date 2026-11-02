@@ -2,7 +2,7 @@ import { mount } from '@vue/test-utils'
 import { afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { computed, defineComponent, h, reactive } from 'vue'
 
-import { shadowrunCatalogs } from '../../../../test/shadowrun'
+import { readFixture, shadowrunCatalogs } from '../../../../test/shadowrun'
 import { createShadowrun, type Derived } from '../rules'
 import AttributesScreen from './AttributesScreen.vue'
 import { buildUiCatalogs, uiCatalogs } from './catalogs'
@@ -11,6 +11,7 @@ import { provideFooter } from './footer'
 import MetatypeScreen from './MetatypeScreen.vue'
 import PrioritiesScreen from './PrioritiesScreen.vue'
 import QualitiesScreen from './QualitiesScreen.vue'
+import SkillsScreen from './SkillsScreen.vue'
 
 const catalogs = shadowrunCatalogs()
 const rules = createShadowrun(catalogs)
@@ -240,5 +241,89 @@ describe('QualitiesScreen', () => {
     ).toBeDefined()
     await s.w.find('.remove').trigger('click')
     expect(s.data()).not.toHaveProperty('qualities')
+  })
+})
+
+describe('SkillsScreen', () => {
+  const beto = () =>
+    readFixture('fixtures/shadowrun/5e/beto-skills.json') as { data: Record<string, unknown> }
+  const tab = (s: ReturnType<typeof setup>, name: string) =>
+    s.w.findAll('[role="tab"]').find((t) => t.text().startsWith(name))!
+
+  it('mostra o orçamento de cada aba e o nível com a parada', async () => {
+    const s = setup(SkillsScreen, beto().data, 'skills')
+    expect(tab(s, 'Ativas').text()).toContain('28 de 28')
+    expect(tab(s, 'Grupos').text()).toContain('2 de 2')
+    expect(tab(s, 'Conhecimento').text()).toContain('12 de 12')
+    const automatics = s.w.findAll('.row').find((r) => r.text().includes('Automáticas'))!
+    expect(automatics.find('.rating').text()).toBe('5')
+    expect(automatics.find('.pool').text()).toContain('9')
+    expect(s.status()).toBe('Todos os pontos distribuídos.')
+
+    await tab(s, 'Grupos').trigger('click')
+    expect(s.w.find('.row').text()).toContain('Paradas: Corrida 13, Ginástica 6, Natação 13')
+
+    await tab(s, 'Idiomas').trigger('click')
+    const rows = s.w.findAll('.row')
+    expect(rows[0]!.find('.rating').text()).toBe('N')
+    expect(rows[1]!.find('.pool').text()).toContain('4')
+  })
+
+  it('bloqueia no seletor e adiciona a perícia com nível 1', async () => {
+    const s = setup(SkillsScreen, beto().data, 'skills')
+    button('Adicionar perícia').click()
+    await s.w.vm.$nextTick()
+    const note = (name: string) =>
+      inBody('.item')
+        .find((b) => b.querySelector('.name')?.textContent === name)!
+        .querySelector('.note')!.textContent
+    expect(note('Corrida')).toBe('Grupo Atletismo já comprado')
+    expect(note('Conjuração')).toBe('Só para despertos')
+    expect(note('Automáticas')).toBe('Já está na ficha')
+    inBody('.item')
+      .find((b) => b.querySelector('.name')?.textContent === 'Etiqueta')!
+      .click()
+    await s.w.vm.$nextTick()
+    button('Adicionar com nível 1').click()
+    await s.w.vm.$nextTick()
+    expect((s.data().skills as { active: Record<string, unknown> }).active.etiquette).toEqual({
+      points: 1,
+    })
+  })
+
+  it('trava no 6, ou no 7 com Aptidão na perícia', async () => {
+    const data = {
+      identity: { name: 'Ana' },
+      priorities: { metatype: 'D', attributes: 'B', magic: 'E', skills: 'A', resources: 'C' },
+      metatype: 'human',
+      qualities: [{ key: 'q1', id: 'aptitude', choice: 'pistols' }],
+      skills: {
+        active: { automatics: { points: 6 }, pistols: { points: 6 } },
+        languages: [{ key: 'l1', name: 'Inglês', native: true }],
+      },
+    }
+    const s = setup(SkillsScreen, data, 'skills')
+    const open = async (name: string) =>
+      s.w
+        .findAll('.row')
+        .find((r) => r.text().includes(name))!
+        .trigger('click')
+    await open('Automáticas')
+    expect(s.w.find('[aria-label="Subir Automáticas"]').attributes('disabled')).toBeDefined()
+    await open('Pistolas')
+    expect(s.w.find('[aria-label="Subir Pistolas"]').attributes('disabled')).toBeUndefined()
+  })
+
+  it('adiciona conhecimento pelo formulário e avisa a falta do idioma nativo', async () => {
+    const s = setup(SkillsScreen, { identity: { name: 'Ana' }, metatype: 'human' }, 'skills')
+    expect(s.alert()).toBe('Falta o idioma nativo.')
+    await tab(s, 'Conhecimento').trigger('click')
+    button('Adicionar conhecimento').click()
+    await s.w.vm.$nextTick()
+    await s.w.find('.add-form input[type="text"]').setValue('Gangues de Seattle')
+    await s.w.find('.add-form').trigger('submit')
+    const k = (s.data().skills as { knowledge: Record<string, unknown>[] }).knowledge
+    expect(k).toHaveLength(1)
+    expect(k[0]).toMatchObject({ name: 'Gangues de Seattle', category: 'street', points: 1 })
   })
 })
