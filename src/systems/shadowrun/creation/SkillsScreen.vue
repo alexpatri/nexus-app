@@ -548,7 +548,7 @@ const hints: Record<Tab, string> = {
     <button
       v-else
       type="button"
-      class="add"
+      class="sr-outline add"
       @click="
         tab === 'active'
           ? (picking = 'skill')
@@ -557,14 +557,14 @@ const hints: Record<Tab, string> = {
             : startAdding()
       "
     >
-      {{
+      <span>{{
         {
           active: 'Adicionar perícia',
           groups: 'Adicionar grupo',
           knowledge: 'Adicionar conhecimento',
           languages: 'Adicionar idioma',
         }[tab]
-      }}
+      }}</span>
     </button>
   </section>
 
@@ -586,7 +586,7 @@ const hints: Record<Tab, string> = {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   margin: calc(-1 * var(--space-3)) 0 var(--space-3);
-  border-bottom: var(--border-width) solid var(--color-rule);
+  background: var(--sr-coal);
 }
 
 [role='tab'] {
@@ -599,23 +599,23 @@ const hints: Record<Tab, string> = {
   padding: 0 2px;
   border: 0;
   background: transparent;
-  color: var(--color-text);
+  color: #a3a6ac;
   font: inherit;
-  font-size: 0.875rem;
-  font-weight: 500;
+  font-family: var(--font-numeric);
+  font-size: 1rem;
+  font-weight: 600;
   cursor: pointer;
 }
 
 [role='tab'][aria-selected='true'] {
-  color: var(--sr-pen);
-  font-weight: 700;
-  box-shadow: inset 0 -3px 0 var(--sr-pen);
+  color: var(--sr-on-dark);
+  box-shadow: inset 0 -3px 0 var(--sr-carmine-bright);
 }
 
 .tab-budget {
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   font-weight: 500;
-  color: var(--color-text-muted);
+  color: var(--sr-on-dark-muted);
 }
 
 .panel {
@@ -779,14 +779,12 @@ input[type='text'] {
 .add {
   align-self: flex-start;
   min-height: var(--touch-min);
-  padding: 0 14px;
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-control);
-  background: transparent;
-  color: var(--color-text);
   font: inherit;
   font-size: var(--text-sm);
   font-weight: 600;
-  cursor: pointer;
+}
+
+.add > span {
+  padding: 0 14px;
 }
 </style>

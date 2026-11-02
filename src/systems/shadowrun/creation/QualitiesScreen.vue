@@ -269,7 +269,9 @@ useFooter({
         </div>
       </li>
     </ul>
-    <button type="button" class="add" @click="picking = side.kind">{{ side.add }}</button>
+    <button type="button" class="sr-outline add" @click="picking = side.kind">
+      <span>{{ side.add }}</span>
+    </button>
   </section>
 
   <PickerSheet
@@ -450,14 +452,12 @@ input[type='text'] {
 .add {
   align-self: flex-start;
   min-height: var(--touch-min);
-  padding: 0 14px;
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-control);
-  background: transparent;
-  color: var(--color-text);
   font: inherit;
   font-size: var(--text-sm);
   font-weight: 600;
-  cursor: pointer;
+}
+
+.add > span {
+  padding: 0 14px;
 }
 </style>

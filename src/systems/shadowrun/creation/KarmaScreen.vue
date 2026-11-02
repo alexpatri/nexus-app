@@ -274,8 +274,9 @@ useFooter({
             >{{ a.name }} <span class="numeric value">{{ a.value }}</span></span
           >
           <span class="detail">
-            {{ a.karma ? `${stepsCost(costs.attribute, a.from, a.karma)} de carma` : 'Sem carma' }}
-            · próximo nível {{ stepsCost(costs.attribute, a.from + a.karma, 1) }}
+            {{
+              `${a.karma ? `${stepsCost(costs.attribute, a.from, a.karma)} de carma` : 'Sem carma'}; próximo nível custa ${stepsCost(costs.attribute, a.from + a.karma, 1)}`
+            }}
           </span>
           <span v-if="problems.has(a.id)" class="problem">{{ problems.get(a.id) }}</span>
         </span>
@@ -319,7 +320,7 @@ useFooter({
             >{{ k.name }} <span class="numeric value">{{ k.from + k.karma }}</span></span
           >
           <span class="detail">
-            {{ k.list === 'languages' ? 'Idioma' : 'Conhecimento' }} ·
+            {{ k.list === 'languages' ? 'Idioma' : 'Conhecimento' }},
             {{ k.karma ? `${stepsCost(k.formula, k.from, k.karma)} de carma` : 'sem carma' }}
           </span>
         </span>
@@ -332,7 +333,9 @@ useFooter({
         />
       </li>
     </ul>
-    <button type="button" class="add" @click="picking = true">Comprar perícia nova</button>
+    <button type="button" class="sr-outline add" @click="picking = true">
+      <span>Comprar perícia nova</span>
+    </button>
   </section>
 
   <section v-if="bound" class="side">
@@ -364,8 +367,13 @@ useFooter({
         <NxButton variant="text" class="remove" @click="removeBound(x.key)">Remover</NxButton>
       </li>
     </ul>
-    <button type="button" class="add" :disabled="boundItems.length >= cha" @click="addBound">
-      {{ bound.add }}
+    <button
+      type="button"
+      class="sr-outline add"
+      :disabled="boundItems.length >= cha"
+      @click="addBound"
+    >
+      <span>{{ bound.add }}</span>
     </button>
   </section>
 
@@ -429,7 +437,9 @@ useFooter({
         >
       </li>
     </ul>
-    <button type="button" class="add" @click="addContact">Adicionar contato</button>
+    <button type="button" class="sr-outline add" @click="addContact">
+      <span>Adicionar contato</span>
+    </button>
   </section>
 
   <PickerSheet
@@ -583,19 +593,12 @@ input[type='text'] {
 .add {
   align-self: flex-start;
   min-height: var(--touch-min);
-  padding: 0 14px;
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-control);
-  background: transparent;
-  color: var(--color-text);
   font: inherit;
   font-size: var(--text-sm);
   font-weight: 600;
-  cursor: pointer;
 }
 
-.add:disabled {
-  color: var(--color-rule);
-  cursor: not-allowed;
+.add > span {
+  padding: 0 14px;
 }
 </style>

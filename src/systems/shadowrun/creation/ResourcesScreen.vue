@@ -198,12 +198,12 @@ const rows = computed(() => {
         ...(l.options ?? []).map((o) => nameOf(c.lifestyleOptions, o)),
       ]
         .filter(Boolean)
-        .join(' · '),
+        .join(', '),
     })),
     identities: (r.identities ?? []).map((i) => ({
       it: i,
       name: i.name || 'SIN sem nome',
-      detail: `Nível ${i.rating ?? 1} · ${licenses(i.licenses?.length ?? 0)}`,
+      detail: `Nível ${i.rating ?? 1}, ${licenses(i.licenses?.length ?? 0)}`,
     })),
     weapons: (r.weapons ?? []).map((w) => {
       const cat = c.weapons.find((x) => x.id === w.id)
@@ -216,7 +216,7 @@ const rows = computed(() => {
           (w.quantity ?? 1) > 1 ? `${w.quantity} unidades` : '',
         ]
           .filter(Boolean)
-          .join(' · '),
+          .join(', '),
       }
     }),
     armor: (r.armor ?? []).map((a) => ({
@@ -231,7 +231,7 @@ const rows = computed(() => {
         ]
           .map((x) => (x as { name?: string } | undefined)?.name)
           .filter(Boolean)
-          .join(' · ') || 'Sem opções',
+          .join(', ') || 'Sem opções',
     })),
     augmentations: (r.augmentations ?? []).map((a) => {
       const cat = c.augmentations.find((x) => x.id === a.id)
@@ -251,7 +251,7 @@ const rows = computed(() => {
               : '',
         ]
           .filter(Boolean)
-          .join(' · '),
+          .join(', '),
       }
     }),
     devices: (r.devices ?? []).map((d) => {
@@ -259,7 +259,7 @@ const rows = computed(() => {
       return {
         it: d,
         name: gearName(c, d.id),
-        detail: `${d.kind === 'commlink' ? 'Com-link' : 'Ciberdeck'} · Nível ${cat?.deviceRating ?? '?'}`,
+        detail: `${d.kind === 'commlink' ? 'Com-link' : 'Ciberdeck'}, nível ${cat?.deviceRating ?? '?'}`,
       }
     }),
     vehicles: (r.vehicles ?? []).map((v) => ({

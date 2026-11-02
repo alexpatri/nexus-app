@@ -74,19 +74,21 @@ ul {
 
 button {
   min-height: var(--touch-min);
-  padding: 0 var(--space-3);
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-control);
+  padding: 0 14px;
+  border: 0;
   background: var(--color-surface-raised);
+  box-shadow: inset 0 0 0 1px var(--color-border);
   color: var(--color-text);
   font: inherit;
   font-size: var(--text-sm);
   cursor: pointer;
+  clip-path: var(--sr-chamfer-small);
 }
 
 button[aria-pressed='true'] {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
+  background: var(--sr-carmine);
+  box-shadow: none;
+  color: var(--sr-on-dark);
   font-weight: 600;
 }
 </style>

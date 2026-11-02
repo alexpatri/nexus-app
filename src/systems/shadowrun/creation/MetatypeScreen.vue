@@ -110,15 +110,13 @@ useFooter({
 }
 
 .option {
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-control);
   background: var(--color-surface-raised);
-  margin: 1px;
+  box-shadow: inset 0 0 0 1px var(--color-border);
+  clip-path: var(--sr-chamfer);
 }
 
 .option.on {
-  border: 2px solid var(--sr-pen);
-  margin: 0;
+  box-shadow: inset 0 0 0 2px var(--sr-carmine);
 }
 
 button {

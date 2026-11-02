@@ -90,7 +90,7 @@ useFooter({
     <span class="kicker">SIN</span>
     <strong class="who">{{ identity.name?.trim() || 'Sem nome' }}</strong>
     <span class="what">
-      {{ [nameOf(c.metatypes, sheet.metatype), identity.concept].filter(Boolean).join(' · ') }}
+      {{ [nameOf(c.metatypes, sheet.metatype), identity.concept].filter(Boolean).join(', ') }}
     </span>
   </article>
 
@@ -142,24 +142,33 @@ useFooter({
 .sin {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   margin-bottom: var(--space-5);
-  padding: var(--space-4);
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-control);
-  background: var(--color-surface-raised);
+  padding: var(--space-4) 18px;
+  background-color: var(--sr-slate);
+  background-image: repeating-linear-gradient(
+    0deg,
+    rgb(255 255 255 / 3.5%) 0 1px,
+    transparent 1px 4px
+  );
+  color: var(--sr-on-dark);
+  clip-path: var(--sr-chamfer-large);
 }
 
 .kicker {
-  font-size: var(--text-xs);
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  color: var(--color-text-muted);
+  font-family: var(--font-numeric);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--sr-amber);
 }
 
 .who {
-  font-size: 1.375rem;
-  color: var(--sr-pen);
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.5rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
 }
 
 .what {

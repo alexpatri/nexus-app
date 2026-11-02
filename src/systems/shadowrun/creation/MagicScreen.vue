@@ -393,10 +393,12 @@ useFooter({
       <button
         v-if="freeChosen.length < freeRule.count"
         type="button"
-        class="add"
+        class="sr-outline add"
         @click="picking = magic.awakening === 'aspected-magician' ? 'group' : 'skill'"
       >
-        {{ magic.awakening === 'aspected-magician' ? 'Escolher grupo' : 'Escolher perícia' }}
+        <span>{{
+          magic.awakening === 'aspected-magician' ? 'Escolher grupo' : 'Escolher perícia'
+        }}</span>
       </button>
     </section>
 
@@ -423,8 +425,12 @@ useFooter({
         </li>
       </ul>
       <div class="actions">
-        <button type="button" class="add" @click="picking = 'spells'">Adicionar feitiço</button>
-        <button type="button" class="add" @click="picking = 'rituals'">Adicionar ritual</button>
+        <button type="button" class="sr-outline add" @click="picking = 'spells'">
+          <span>Adicionar feitiço</span>
+        </button>
+        <button type="button" class="sr-outline add" @click="picking = 'rituals'">
+          <span>Adicionar ritual</span>
+        </button>
       </div>
     </section>
 
@@ -444,8 +450,8 @@ useFooter({
           </button>
         </li>
       </ul>
-      <button type="button" class="add" @click="picking = 'complexForms'">
-        Adicionar forma complexa
+      <button type="button" class="sr-outline add" @click="picking = 'complexForms'">
+        <span>Adicionar forma complexa</span>
       </button>
     </section>
 
@@ -561,7 +567,9 @@ useFooter({
           </div>
         </li>
       </ul>
-      <button type="button" class="add" @click="picking = 'power'">Adicionar poder</button>
+      <button type="button" class="sr-outline add" @click="picking = 'power'">
+        <span>Adicionar poder</span>
+      </button>
     </section>
   </template>
 
@@ -768,14 +776,12 @@ select {
 .add {
   align-self: flex-start;
   min-height: var(--touch-min);
-  padding: 0 14px;
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-control);
-  background: transparent;
-  color: var(--color-text);
   font: inherit;
   font-size: var(--text-sm);
   font-weight: 600;
-  cursor: pointer;
+}
+
+.add > span {
+  padding: 0 14px;
 }
 </style>
