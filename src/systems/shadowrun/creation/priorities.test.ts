@@ -1,24 +1,11 @@
 // @vitest-environment node
 
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { describe as group, expect, it } from 'vitest'
 
-import type { UiCatalogs } from './catalogs'
+import { shadowrunUi } from '../../../../test/shadowrun'
 import { assign, describe } from './priorities'
 
-const root = fileURLToPath(
-  new URL('../../../../test/fixtures/data/systems/shadowrun/5e/', import.meta.url),
-)
-const read = (name: string) => JSON.parse(readFileSync(join(root, `${name}.json`), 'utf8'))
-const c: UiCatalogs = {
-  columns: read('priorities').columns,
-  rows: read('priorities').rows,
-  metatypes: read('metatypes').metatypes,
-  attributes: read('attributes').attributes,
-  awakenings: read('awakening').awakenings,
-}
+const c = shadowrunUi()
 
 group('assign', () => {
   it('escolhe uma letra livre', () => {

@@ -14,6 +14,8 @@ import { provideFooter } from './footer'
 import MetatypeScreen from './MetatypeScreen.vue'
 import PendingStep from './PendingStep.vue'
 import PrioritiesScreen from './PrioritiesScreen.vue'
+import QualitiesScreen from './QualitiesScreen.vue'
+import SkillsScreen from './SkillsScreen.vue'
 import { screenIndex, screens, stepIds, stepNumber } from './steps'
 
 const props = defineProps<{ open: OpenSheet; rules: RulesSystem; step?: string }>()
@@ -113,6 +115,20 @@ function reload() {
       <MetatypeScreen v-else-if="current.id === 'metatype'" :data="open.data" :edit="edit" />
       <AttributesScreen
         v-else-if="current.id === 'attributes'"
+        :data="open.data"
+        :edit="edit"
+        :derived="derived"
+        :violations="violations"
+      />
+      <QualitiesScreen
+        v-else-if="current.id === 'qualities'"
+        :data="open.data"
+        :edit="edit"
+        :derived="derived"
+        :violations="violations"
+      />
+      <SkillsScreen
+        v-else-if="current.id === 'skills'"
         :data="open.data"
         :edit="edit"
         :derived="derived"

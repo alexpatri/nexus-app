@@ -1,52 +1,52 @@
 import { mount } from '@vue/test-utils'
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
-import { beforeAll, describe, expect, it } from 'vitest'
+import { afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { computed, defineComponent, h, reactive } from 'vue'
 
-import type { Catalogs } from '../rules/catalogs'
+import { readFixture, shadowrunCatalogs } from '../../../../test/shadowrun'
 import { createShadowrun, type Derived } from '../rules'
 import AttributesScreen from './AttributesScreen.vue'
-import { uiCatalogs } from './catalogs'
+import { buildUiCatalogs, uiCatalogs } from './catalogs'
 import type { Edit } from './edit'
 import { provideFooter } from './footer'
 import MetatypeScreen from './MetatypeScreen.vue'
 import PrioritiesScreen from './PrioritiesScreen.vue'
+import QualitiesScreen from './QualitiesScreen.vue'
+import SkillsScreen from './SkillsScreen.vue'
 
-const dir = join(process.cwd(), 'test/fixtures/data/systems/shadowrun/5e')
-const read = (name: string) => JSON.parse(readFileSync(join(dir, `${name}.json`), 'utf8'))
-const catalogs = {
-  system: read('system'),
-  metatypes: read('metatypes'),
-  priorities: read('priorities'),
-  mechanics: read('mechanics'),
-} as Catalogs
+const catalogs = shadowrunCatalogs()
 const rules = createShadowrun(catalogs)
 
 beforeAll(() => {
-  uiCatalogs.value = {
-    columns: catalogs.priorities.columns,
-    rows: catalogs.priorities.rows,
-    metatypes: catalogs.metatypes.metatypes,
-    attributes: read('attributes').attributes,
-    awakenings: read('awakening').awakenings,
-  }
+  uiCatalogs.value = buildUiCatalogs(catalogs)
 })
+
+afterEach(() => {
+  document.body.innerHTML = ''
+})
+
+// O Seletor vai para o body (Teleport), fora da árvore do wrapper.
+const inBody = (sel: string) => [...document.body.querySelectorAll<HTMLElement>(sel)]
+const button = (text: string) =>
+  inBody('button').find(
+    (b) => b.getAttribute('aria-label') === text || b.textContent?.trim().startsWith(text),
+  )!
 
 // Monta a tela como o CreationFlow: data reativo, edit que aplica a mudança e
 // o rodapé exposto para conferir.
-function setup(screen: object, initial: Record<string, unknown>) {
+function setup(screen: object, initial: Record<string, unknown>, step?: string) {
   const state = reactive({ data: initial })
   const edit: Edit = (change) => change(state.data)
   let footer!: ReturnType<typeof provideFooter>
   const Host = defineComponent(() => {
     footer = provideFooter()
     const derived = computed(() => rules.derive(state.data) as Derived)
-    const violations = computed(() => rules.validate(state.data, 'strict'))
+    const violations = computed(() =>
+      rules.validate(state.data, 'strict').filter((v) => !step || v.step === step),
+    )
     return () =>
       h(screen, { data: state.data, edit, derived: derived.value, violations: violations.value })
   })
-  const w = mount(Host)
+  const w = mount(Host, { attachTo: document.body })
   return {
     w,
     data: () => state.data,
@@ -147,5 +147,183 @@ describe('AttributesScreen', () => {
     const s = setup(AttributesScreen, grok())
     expect(s.w.find('[aria-label="Baixar Trunfo"]').exists()).toBe(false)
     expect(s.w.text()).toContain('Sem pontos especiais; sobe com carma no passo 7')
+  })
+})
+
+describe('QualitiesScreen', () => {
+  const troll = () => ({
+    identity: { name: 'Grok' },
+    priorities: { ...GROK },
+    metatype: 'troll',
+    qualities: [
+      { key: 'q1', id: 'quick-healer' },
+      { key: 'q2', id: 'bad-rep' },
+    ] as unknown[],
+  })
+
+  it('separa positivas e negativas e mostra o carma', () => {
+    const s = setup(QualitiesScreen, troll(), 'qualities')
+    const sides = s.w.findAll('.side')
+    expect(sides[0]!.text()).toContain('Curandeiro Rápido')
+    expect(sides[1]!.text()).toContain('Má Reputação')
+    expect(s.status()).toBe('Carma: 3 gastos de 32')
+    expect(s.w.text()).toContain('O personagem tem 32 de carma: 25 iniciais e 7 das negativas.')
+  })
+
+  it('adiciona pelo seletor e abre a linha nova', async () => {
+    const s = setup(QualitiesScreen, troll(), 'qualities')
+    button('Adicionar positiva').click()
+    await s.w.vm.$nextTick()
+    inBody('.item')
+      .find((b) => b.textContent?.includes('Ambidestria'))!
+      .click()
+    await s.w.vm.$nextTick()
+    button('Adicionar por 4 de carma').click()
+    await s.w.vm.$nextTick()
+
+    const added = (s.data().qualities as { id: string; key: string }[]).at(-1)!
+    expect(added.id).toBe('ambidextrous')
+    expect(added.key).toMatch(/^[0-9a-f]{8}$/)
+    expect(inBody('[role="dialog"]')).toHaveLength(0)
+    expect(s.w.find('[aria-expanded="true"]').text()).toContain('Ambidestria')
+  })
+
+  it('bloqueia no seletor o que não cabe, com o motivo', async () => {
+    const s = setup(
+      QualitiesScreen,
+      { ...troll(), qualities: [{ key: 'q1', id: 'lucky' }] },
+      'qualities',
+    )
+    button('Adicionar positiva').click()
+    await s.w.vm.$nextTick()
+    const note = (name: string) =>
+      inBody('.item')
+        .find((b) => b.querySelector('.name')?.textContent === name)!
+        .querySelector('.note')!.textContent
+    expect(note('Sortudo')).toBe('Já está na ficha')
+    expect(note('Afinidade Espiritual')).toBe('Só para despertos')
+    expect(note('Aparência Humana')).toBe('Sem nível')
+    button('Fechar').click()
+    await s.w.vm.$nextTick()
+    button('Adicionar negativa').click()
+    await s.w.vm.$nextTick()
+    expect(note('Elfo Poser')).toBe('Só para humano')
+  })
+
+  it('pede a opção que falta e grava a escolhida', async () => {
+    const s = setup(
+      QualitiesScreen,
+      { ...troll(), qualities: [{ key: 'q1', id: 'addiction' }] },
+      'qualities',
+    )
+    expect(s.w.find('.problem').text()).toBe('Vício: escolha uma opção.')
+    await s.w.find('.row').trigger('click')
+    const moderate = s.w
+      .findAll('input[type="radio"]')
+      .find((r) => r.element.parentElement?.textContent?.includes('Moderado'))!
+    await moderate.setValue(true)
+    expect(s.data().qualities).toEqual([{ key: 'q1', id: 'addiction', option: 'moderate' }])
+    expect(s.w.find('.problem').exists()).toBe(false)
+    expect(s.w.find('.karma').text()).toContain('9')
+  })
+
+  it('sobe o nível até o máximo e remove', async () => {
+    const s = setup(
+      QualitiesScreen,
+      { ...troll(), qualities: [{ key: 'q1', id: 'will-to-live', rating: 2 }] },
+      'qualities',
+    )
+    await s.w.find('.row').trigger('click')
+    await s.w.find('[aria-label="Subir o nível de Desejo de Viver"]').trigger('click')
+    expect(s.data().qualities).toEqual([{ key: 'q1', id: 'will-to-live', rating: 3 }])
+    expect(
+      s.w.find('[aria-label="Subir o nível de Desejo de Viver"]').attributes('disabled'),
+    ).toBeDefined()
+    await s.w.find('.remove').trigger('click')
+    expect(s.data()).not.toHaveProperty('qualities')
+  })
+})
+
+describe('SkillsScreen', () => {
+  const beto = () =>
+    readFixture('fixtures/shadowrun/5e/beto-skills.json') as { data: Record<string, unknown> }
+  const tab = (s: ReturnType<typeof setup>, name: string) =>
+    s.w.findAll('[role="tab"]').find((t) => t.text().startsWith(name))!
+
+  it('mostra o orçamento de cada aba e o nível com a parada', async () => {
+    const s = setup(SkillsScreen, beto().data, 'skills')
+    expect(tab(s, 'Ativas').text()).toContain('28 de 28')
+    expect(tab(s, 'Grupos').text()).toContain('2 de 2')
+    expect(tab(s, 'Conhecimento').text()).toContain('12 de 12')
+    const automatics = s.w.findAll('.row').find((r) => r.text().includes('Automáticas'))!
+    expect(automatics.find('.rating').text()).toBe('5')
+    expect(automatics.find('.pool').text()).toContain('9')
+    expect(s.status()).toBe('Todos os pontos distribuídos.')
+
+    await tab(s, 'Grupos').trigger('click')
+    expect(s.w.find('.row').text()).toContain('Paradas: Corrida 13, Ginástica 6, Natação 13')
+
+    await tab(s, 'Idiomas').trigger('click')
+    const rows = s.w.findAll('.row')
+    expect(rows[0]!.find('.rating').text()).toBe('N')
+    expect(rows[1]!.find('.pool').text()).toContain('4')
+  })
+
+  it('bloqueia no seletor e adiciona a perícia com nível 1', async () => {
+    const s = setup(SkillsScreen, beto().data, 'skills')
+    button('Adicionar perícia').click()
+    await s.w.vm.$nextTick()
+    const note = (name: string) =>
+      inBody('.item')
+        .find((b) => b.querySelector('.name')?.textContent === name)!
+        .querySelector('.note')!.textContent
+    expect(note('Corrida')).toBe('Grupo Atletismo já comprado')
+    expect(note('Conjuração')).toBe('Só para despertos')
+    expect(note('Automáticas')).toBe('Já está na ficha')
+    inBody('.item')
+      .find((b) => b.querySelector('.name')?.textContent === 'Etiqueta')!
+      .click()
+    await s.w.vm.$nextTick()
+    button('Adicionar com nível 1').click()
+    await s.w.vm.$nextTick()
+    expect((s.data().skills as { active: Record<string, unknown> }).active.etiquette).toEqual({
+      points: 1,
+    })
+  })
+
+  it('trava no 6, ou no 7 com Aptidão na perícia', async () => {
+    const data = {
+      identity: { name: 'Ana' },
+      priorities: { metatype: 'D', attributes: 'B', magic: 'E', skills: 'A', resources: 'C' },
+      metatype: 'human',
+      qualities: [{ key: 'q1', id: 'aptitude', choice: 'pistols' }],
+      skills: {
+        active: { automatics: { points: 6 }, pistols: { points: 6 } },
+        languages: [{ key: 'l1', name: 'Inglês', native: true }],
+      },
+    }
+    const s = setup(SkillsScreen, data, 'skills')
+    const open = async (name: string) =>
+      s.w
+        .findAll('.row')
+        .find((r) => r.text().includes(name))!
+        .trigger('click')
+    await open('Automáticas')
+    expect(s.w.find('[aria-label="Subir Automáticas"]').attributes('disabled')).toBeDefined()
+    await open('Pistolas')
+    expect(s.w.find('[aria-label="Subir Pistolas"]').attributes('disabled')).toBeUndefined()
+  })
+
+  it('adiciona conhecimento pelo formulário e avisa a falta do idioma nativo', async () => {
+    const s = setup(SkillsScreen, { identity: { name: 'Ana' }, metatype: 'human' }, 'skills')
+    expect(s.alert()).toBe('Falta o idioma nativo.')
+    await tab(s, 'Conhecimento').trigger('click')
+    button('Adicionar conhecimento').click()
+    await s.w.vm.$nextTick()
+    await s.w.find('.add-form input[type="text"]').setValue('Gangues de Seattle')
+    await s.w.find('.add-form').trigger('submit')
+    const k = (s.data().skills as { knowledge: Record<string, unknown>[] }).knowledge
+    expect(k).toHaveLength(1)
+    expect(k[0]).toMatchObject({ name: 'Gangues de Seattle', category: 'street', points: 1 })
   })
 })
