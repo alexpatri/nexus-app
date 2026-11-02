@@ -20,6 +20,10 @@ const catalogs = {
   metatypes: read('metatypes'),
   priorities: read('priorities'),
   mechanics: read('mechanics'),
+  qualities: read('qualities'),
+  skills: read('skills'),
+  mentors: read('mentors'),
+  traditions: read('traditions'),
 } as Catalogs
 const rules = createShadowrun(catalogs)
 

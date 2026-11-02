@@ -3,7 +3,10 @@
 // mesmas fixtures (shadowrun-contrato-da-ficha.md).
 import { type Env, evaluate } from '@/core/rules/expr'
 import type { RulesSystem, Summary, Violation } from '@/core/rules/system'
-import type { Catalogs, Metatype, PriorityRow } from './catalogs'
+import type { Catalogs } from './catalogs'
+import { lookup } from './lookup'
+import { type Effects, qualityEffects, strictQualities } from './qualities'
+import { deriveSkills, skillCosts, type SkillsOut, strictSkills } from './skills'
 import { baseAttrs, columns, lenient, type Sheet, specialAttrs, violation } from './validate'
 
 export const codes = [
@@ -16,6 +19,19 @@ export const codes = [
   'attributes.tooManyAtMax',
   'attributes.notAllowed',
   'budget.exceeded',
+  'key.duplicate',
+  'qualities.levelOutOfRange',
+  'qualities.optionRequired',
+  'qualities.choiceRequired',
+  'qualities.choiceNotAllowed',
+  'qualities.duplicate',
+  'qualities.unique',
+  'qualities.requirementNotMet',
+  'skills.aboveMax',
+  'skills.restricted',
+  'skills.groupConflict',
+  'skills.specializationNotAllowed',
+  'skills.nativeLanguageCount',
 ]
 
 export interface Budget {
@@ -34,6 +50,7 @@ export interface Derived {
   movement?: Record<string, number>
   lifting?: Record<string, number>
   reputation: Record<string, number>
+  skills?: SkillsOut
   budgets: Record<string, Budget>
 }
 
@@ -44,6 +61,7 @@ interface Calc {
   essence?: number
   metatypeAtPriority: boolean
   budgets: Record<string, Budget>
+  effects: Effects
 }
 
 export class InvalidSheet extends Error {
@@ -59,10 +77,8 @@ const number = (x: number) => String(x).replace('.', ',')
 
 export function createShadowrun(catalogs: Catalogs): RulesSystem {
   const steps = catalogs.system.creation.steps.map((s) => s.id)
-  const metatypes = new Map<string, Metatype>(catalogs.metatypes.metatypes.map((m) => [m.id, m]))
-  const priorities = new Map<string, PriorityRow>(
-    catalogs.priorities.rows.map((r) => [r.priority, r]),
-  )
+  const l = lookup(catalogs)
+  const { metatypes, priorities } = l
   const mech = catalogs.mechanics
   const formulas = {
     limits: {
@@ -82,7 +98,14 @@ export function createShadowrun(catalogs: Catalogs): RulesSystem {
   // Avalia toda fórmula usada com um ambiente completo: ref faltando ou
   // fórmula malformada no catálogo falha na criação, não na primeira ficha.
   function check() {
-    if (steps.length === 0 || metatypes.size === 0 || priorities.size !== 5) {
+    if (
+      steps.length === 0 ||
+      metatypes.size === 0 ||
+      priorities.size !== 5 ||
+      l.qualities.size === 0 ||
+      l.skills.size === 0 ||
+      l.knowledge.size === 0
+    ) {
       throw new Error('shadowrun: catálogos incompletos')
     }
     const env: Env = { rating: 1, 'karma.total': 0, 'attr.ess': 6 }
@@ -101,6 +124,11 @@ export function createShadowrun(catalogs: Catalogs): RulesSystem {
       d.movement.run,
       d.reputation.streetCred.value,
       mech.creation.skills.knowledgePoints,
+      mech.progression.costs.activeSkill,
+      mech.progression.costs.skillGroup,
+      mech.progression.costs.knowledgeSkill,
+      mech.progression.costs.languageSkill,
+      mech.progression.costs.specialization,
       mech.creation.contacts.karma,
       mech.progression.costs.attribute,
       ...Object.values(formulas.limits),
@@ -115,7 +143,7 @@ export function createShadowrun(catalogs: Catalogs): RulesSystem {
   }
 
   function parse(data: unknown): Sheet {
-    const vs = lenient(data, metatypes)
+    const vs = lenient(data, l)
     if (vs.length > 0) throw new InvalidSheet(vs)
     return data as Sheet
   }
@@ -131,7 +159,9 @@ export function createShadowrun(catalogs: Catalogs): RulesSystem {
     const attrs = d.attributes ?? {}
     const prio = d.priorities ?? {}
     const m = d.metatype ? metatypes.get(d.metatype) : undefined
-    const c: Calc = { natural: {}, metatypeAtPriority: false, budgets: {} }
+    const fx = qualityEffects(l, d)
+    const c: Calc = { natural: {}, metatypeAtPriority: false, budgets: {}, effects: fx }
+    const sk = skillCosts(l, mech, d)
     const evalInt = (f: unknown, e: Env) => Math.trunc(evaluate(f, e))
     const points = (a: string) => attrs[a]?.points ?? 0
     const karma = (a: string) => attrs[a]?.karma ?? 0
@@ -158,20 +188,25 @@ export function createShadowrun(catalogs: Catalogs): RulesSystem {
     }
     const skillRow = priorities.get(prio.skills ?? '')
     if (skillRow) {
-      c.budgets.skills = { total: skillRow.skills.points, spent: 0 }
-      c.budgets.skillGroups = { total: skillRow.skills.groupPoints, spent: 0 }
+      c.budgets.skills = { total: skillRow.skills.points, spent: sk.points }
+      c.budgets.skillGroups = { total: skillRow.skills.groupPoints, spent: sk.groups }
     }
+    c.budgets.positiveQualities = { total: mech.creation.qualities.positiveMax, spent: fx.positive }
+    c.budgets.negativeQualities = { total: mech.creation.qualities.negativeMax, spent: fx.negative }
     const resRow = priorities.get(prio.resources ?? '')
     if (resRow) c.budgets.nuyen = { total: resRow.resources, spent: 0 }
     if (m) {
       const e = env(c)
-      c.budgets.knowledge = { total: evalInt(mech.creation.skills.knowledgePoints, e), spent: 0 }
+      c.budgets.knowledge = {
+        total: evalInt(mech.creation.skills.knowledgePoints, e),
+        spent: sk.knowledge,
+      }
       c.budgets.contacts = { total: evalInt(mech.creation.contacts.karma, e), spent: 0 }
     }
 
     // Carma sobe degrau a degrau a partir do valor com os pontos. Sem metatipo,
     // o degrau inicial dos atributos comuns é desconhecido e o orçamento some.
-    let spent = 0
+    let spent = fx.positive + sk.karma
     let priced = true
     for (const a of [...baseAttrs, ...specialAttrs]) {
       if (karma(a) === 0) continue
@@ -187,7 +222,7 @@ export function createShadowrun(catalogs: Catalogs): RulesSystem {
         spent += evalInt(mech.progression.costs.attribute, { rating: r })
       }
     }
-    if (priced) c.budgets.karma = { total: mech.creation.karma, spent }
+    if (priced) c.budgets.karma = { total: mech.creation.karma + fx.negative, spent }
     return c
   }
 
@@ -239,7 +274,7 @@ export function createShadowrun(catalogs: Catalogs): RulesSystem {
       const atMax: string[] = []
       for (const a of withEdge) {
         const value = c.natural[a] ?? 0
-        const max = m.attributes[a]?.max ?? 0
+        const max = (m.attributes[a]?.max ?? 0) + (c.effects.attrMax[a] ?? 0)
         if (value > max) {
           vs.push(violation(layer(a, d), 'attributes.aboveMax', { attribute: a, value, max }))
         }
@@ -251,6 +286,8 @@ export function createShadowrun(catalogs: Catalogs): RulesSystem {
         )
       }
     }
+
+    vs.push(...strictQualities(l, d, c.natural), ...strictSkills(l, mech, d, c.effects))
 
     for (const id of Object.keys(c.budgets).sort()) {
       const b = c.budgets[id]!
@@ -268,7 +305,7 @@ export function createShadowrun(catalogs: Catalogs): RulesSystem {
   }
 
   function validate(data: unknown, mode: 'lenient' | 'strict'): Violation[] {
-    const vs = lenient(data, metatypes)
+    const vs = lenient(data, l)
     if (vs.length > 0 || mode === 'lenient') return vs
     const d = data as Sheet
     return strict(d, calc(d))
@@ -283,12 +320,14 @@ export function createShadowrun(catalogs: Catalogs): RulesSystem {
     const out: Derived = {
       reputation: {
         streetCred: ev(md.reputation.streetCred.value),
-        notoriety: md.reputation.notoriety.base,
+        notoriety: Math.max(0, md.reputation.notoriety.base + c.effects.notoriety),
         publicAwareness: md.reputation.publicAwareness.base,
       },
       budgets: c.budgets,
     }
     const m = d.metatype ? metatypes.get(d.metatype) : undefined
+    const skills = deriveSkills(l, d, c.natural)
+    if (skills) out.skills = skills
     if (!m) return out
 
     out.attributes = Object.fromEntries(
@@ -297,7 +336,9 @@ export function createShadowrun(catalogs: Catalogs): RulesSystem {
     out.essence = c.essence
     const map = <K extends string>(fs: Record<K, unknown>) =>
       Object.fromEntries(Object.entries(fs).map(([k, f]) => [k, ev(f)]))
-    out.limits = map(formulas.limits)
+    out.limits = Object.fromEntries(
+      Object.entries(map(formulas.limits)).map(([id, v]) => [id, v + (c.effects.limit[id] ?? 0)]),
+    )
     const dice = (n: number) => Math.min(n, md.initiative.maxDice)
     out.initiative = {
       physical: { base: ev(md.initiative.physical.base), dice: dice(md.initiative.physical.dice) },
@@ -306,7 +347,7 @@ export function createShadowrun(catalogs: Catalogs): RulesSystem {
     out.monitors = {
       physical: ev(md.monitors.physical.boxes),
       stun: ev(md.monitors.stun.boxes),
-      overflow: ev(md.monitors.overflow.boxes),
+      overflow: ev(md.monitors.overflow.boxes) + c.effects.overflow,
       woundPenalty: 0,
     }
     out.armor = m.traits

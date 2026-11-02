@@ -42,10 +42,63 @@ export interface Mechanics {
   }
   creation: {
     karma: number
-    skills: { knowledgePoints: unknown }
+    qualities: { positiveMax: number; negativeMax: number }
+    skills: { knowledgePoints: unknown; maxRating: number; specializationCost: number }
     contacts: { karma: unknown }
   }
-  progression: { costs: { attribute: unknown } }
+  progression: {
+    costs: Record<
+      | 'attribute'
+      | 'activeSkill'
+      | 'skillGroup'
+      | 'knowledgeSkill'
+      | 'languageSkill'
+      | 'specialization',
+      unknown
+    >
+  }
+}
+
+export interface QualityOption {
+  id: string
+  karma: number
+}
+
+export interface QualityModifier {
+  target: string
+  // Alvo fixo, ou { choose, except, only } quando o alvo é o choice.
+  of?: string | { choose: string; except?: string[]; only?: string[] }
+  add?: unknown
+  times?: unknown
+}
+
+export interface Quality {
+  id: string
+  kind: 'positive' | 'negative'
+  karma:
+    | number
+    | { perLevel: number }
+    | { options: QualityOption[] }
+    | { sum: { id: string; options: QualityOption[] }[] }
+  levels?: { max: number }
+  // Ponteiro para o catálogo de onde vem a escolha (tradições, mentores).
+  choice?: string
+  modifiers?: QualityModifier[]
+  requires?: { metatype?: string[]; special?: string }
+  unique?: boolean
+}
+
+export interface Skill {
+  id: string
+  attribute: string
+  group: string | null
+  restricted: boolean
+}
+
+export interface SkillsCatalog {
+  skills: Skill[]
+  groups: { id: string; skills: string[] }[]
+  knowledge: { categories: { id: string; attribute: string }[] }
 }
 
 export interface Catalogs {
@@ -53,4 +106,8 @@ export interface Catalogs {
   metatypes: { metatypes: Metatype[] }
   priorities: { columns: { id: string; name: string }[]; rows: PriorityRow[] }
   mechanics: Mechanics
+  qualities: { qualities: Quality[] }
+  skills: SkillsCatalog
+  mentors: { mentors: { id: string }[] }
+  traditions: { spiritTypes: { id: string }[] }
 }

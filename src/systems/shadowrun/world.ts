@@ -8,13 +8,42 @@ import { createShadowrun } from './rules'
 import { shadowrunTheme } from './theme'
 
 async function rules(loader: CatalogLoader) {
-  const names = ['system', 'metatypes', 'priorities', 'mechanics', 'attributes', 'awakening']
-  const [system, metatypes, priorities, mechanics, attributes, awakening] = await Promise.all(
-    names.map((name) => loader.catalog('shadowrun', '5e', name)),
-  )
+  const names = [
+    'system',
+    'metatypes',
+    'priorities',
+    'mechanics',
+    'attributes',
+    'awakening',
+    'qualities',
+    'skills',
+    'mentors',
+    'traditions',
+  ]
+  const [
+    system,
+    metatypes,
+    priorities,
+    mechanics,
+    attributes,
+    awakening,
+    qualities,
+    skills,
+    mentors,
+    traditions,
+  ] = await Promise.all(names.map((name) => loader.catalog('shadowrun', '5e', name)))
   // A mesa pode ficar sem conexão: o resto do sistema baixa em segundo plano.
   void loader.preload('shadowrun', '5e').catch(() => {})
-  const c = { system, metatypes, priorities, mechanics } as Catalogs
+  const c = {
+    system,
+    metatypes,
+    priorities,
+    mechanics,
+    qualities,
+    skills,
+    mentors,
+    traditions,
+  } as Catalogs
   uiCatalogs.value = {
     columns: c.priorities.columns,
     rows: c.priorities.rows,

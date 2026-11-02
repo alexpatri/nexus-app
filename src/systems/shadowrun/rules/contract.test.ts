@@ -19,6 +19,10 @@ const catalogs = {
   metatypes: catalog('metatypes'),
   priorities: catalog('priorities'),
   mechanics: catalog('mechanics'),
+  qualities: catalog('qualities'),
+  skills: catalog('skills'),
+  mentors: catalog('mentors'),
+  traditions: catalog('traditions'),
 } as Catalogs
 
 const dir = 'fixtures/shadowrun/5e'
