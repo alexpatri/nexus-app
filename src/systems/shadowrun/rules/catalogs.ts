@@ -5,7 +5,7 @@ export interface Metatype {
   id: string
   name: string
   attributes: Record<string, { min?: number; max?: number; start?: number }>
-  traits: { name: string; modifiers?: { target: string; add?: unknown }[] }[]
+  traits: { name: string; modifiers?: { target: string; add?: unknown; mul?: number }[] }[]
   sprintPerHit: number
 }
 
@@ -50,6 +50,7 @@ export interface Mechanics {
       maxDice: number
     }
     livingPersona: { dataProcessing: unknown }
+    essenceLoss: { attributes: string[]; loss: unknown }
     limits: Record<'physical' | 'mental' | 'social', { value: unknown }>
     monitors: Record<'physical' | 'stun' | 'overflow', { boxes: unknown }>
     attributeTests: Record<
@@ -70,6 +71,13 @@ export interface Mechanics {
     skills: { knowledgePoints: unknown; maxRating: number; specializationCost: number }
     contacts: { karma: unknown }
     specialAttributeMax: Record<string, number>
+    resources: {
+      karmaToNuyen: { rate: number; maxKarma: number }
+      nuyenCarryOver: number
+      maxAvailability: number
+      maxDeviceRating: number
+      grades: string[]
+    }
     purchases: {
       spell: { karma: number; max: unknown }
       complexForm: { karma: number; max: unknown }
@@ -78,6 +86,7 @@ export interface Mechanics {
       registeredSpriteTask: { karma: number }
     }
   }
+  augmentation: { maxAttributeBonus: number }
   progression: {
     costs: Record<
       | 'attribute'
@@ -102,6 +111,7 @@ export interface QualityModifier {
   of?: string | { choose: string; except?: string[]; only?: string[] }
   add?: unknown
   times?: unknown
+  mul?: number
 }
 
 export interface Quality {
@@ -118,6 +128,12 @@ export interface Quality {
   modifiers?: QualityModifier[]
   requires?: { metatype?: string[]; special?: string }
   unique?: boolean
+  excludes?: CatalogRef[]
+}
+
+export interface CatalogRef {
+  catalog: string
+  id: string
 }
 
 export interface Skill {
@@ -133,6 +149,98 @@ export interface AdeptPower {
   powerPoints: number | { perLevel: number } | { byLevel: number[] } | { each: number }
   parameter?: { kind: string; options?: string[]; categories?: string[]; except?: string[] }
   levels?: { max: number }
+  modifiers?: GearModifier[]
+}
+
+export interface GearModifier {
+  target: string
+  of?: string
+  add?: unknown
+}
+
+// availability é { value } (fórmula com rating) ou { add } (soma à do item).
+export interface Availability {
+  value?: unknown
+  add?: unknown
+}
+
+export interface RatingRange {
+  min: number
+  max: number
+}
+
+export interface GearItem {
+  id: string
+  name?: string
+  category?: string
+  rating?: RatingRange
+  availability: Availability | null
+  cost: unknown
+}
+
+export interface Lifestyle {
+  id: string
+  cost?: number
+  primary?: boolean
+  startingNuyen?: { dice: number; multiplier: number }
+}
+
+export interface ArmorOption {
+  id: string
+  armor?: number | { add: unknown }
+  availability: Availability | null
+  cost: unknown
+}
+
+export interface ArmorItem extends GearItem {
+  armor: number | { add: unknown }
+  capacity: number
+  options?: ArmorOption[]
+}
+
+export interface ArmorMod extends GearItem {
+  capacity: { cost: unknown }
+}
+
+export interface Capacity {
+  cost?: unknown
+  provides?: number
+  accepts?: string[]
+}
+
+// O que um nível ou uma variante troca no item.
+export interface AugPart {
+  id?: string
+  name?: string
+  essence?: unknown
+  capacity?: Capacity | 'included'
+  availability?: Availability | null
+  cost?: unknown
+  modifiers?: GearModifier[]
+}
+
+export interface Augmentation extends AugPart {
+  id: string
+  category: string
+  type: 'cyberware' | 'bioware'
+  rating?: RatingRange
+  levels?: (AugPart & { rating: number })[]
+  variants?: (AugPart & { id: string })[]
+  parameter?: { kind: string }
+  excludes?: CatalogRef[]
+  unique?: boolean
+}
+
+export interface Grade {
+  id: string
+  essence: number
+  availability: number
+  cost: number
+}
+
+export interface Device extends GearItem {
+  deviceRating: number
+  attributeArray?: number[]
 }
 
 type Ids = { id: string }[]
@@ -156,4 +264,19 @@ export interface Catalogs {
   'adept-powers': { powers: AdeptPower[] }
   'complex-forms': { complexForms: Ids; spriteTypes: Ids }
   spells: { spells: Ids; rituals: Ids }
+  lifestyles: {
+    lifestyles: Lifestyle[]
+    options: { id: string; cost: { add?: number; percent?: number } }[]
+    identities: GearItem[]
+  }
+  weapons: { weapons: GearItem[] }
+  armor: { armor: ArmorItem[]; modifications: ArmorMod[] }
+  augmentations: { grades: Grade[]; augmentations: Augmentation[] }
+  matrix: {
+    commlinks: Device[]
+    commlinkOptions: GearItem[]
+    cyberdecks: Device[]
+    programs: GearItem[]
+  }
+  vehicles: { vehicles: GearItem[] }
 }

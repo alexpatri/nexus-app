@@ -1,4 +1,18 @@
-import type { AdeptPower, Catalogs, Metatype, PriorityRow, Quality, Skill } from './catalogs'
+import type {
+  AdeptPower,
+  ArmorItem,
+  ArmorMod,
+  Augmentation,
+  Catalogs,
+  Device,
+  GearItem,
+  Grade,
+  Lifestyle,
+  Metatype,
+  PriorityRow,
+  Quality,
+  Skill,
+} from './catalogs'
 import { baseAttrs, specialAttrs } from './validate'
 
 // Os catálogos indexados por id, como a estratégia consulta.
@@ -18,7 +32,24 @@ export interface Lookup {
   powers: Map<string, AdeptPower>
   // Ids de cada catálogo de magia que o Lenient confere.
   magicIds: Map<string, string[]>
+  gear: {
+    lifestyles: Map<string, Lifestyle>
+    lifeOptions: Map<string, { add?: number; percent?: number }>
+    identities: Map<string, GearItem>
+    weapons: Map<string, GearItem>
+    armor: Map<string, ArmorItem>
+    armorMods: Map<string, ArmorMod>
+    augmentations: Map<string, Augmentation>
+    grades: Map<string, Grade>
+    commlinks: Map<string, Device>
+    linkOptions: Map<string, GearItem>
+    cyberdecks: Map<string, Device>
+    programs: Map<string, GearItem>
+    vehicles: Map<string, GearItem>
+  }
 }
+
+const byId = <T extends { id: string }>(xs: T[]) => new Map(xs.map((x) => [x.id, x]))
 
 export function lookup(c: Catalogs): Lookup {
   const skills = new Map(c.skills.skills.map((s) => [s.id, s]))
@@ -50,5 +81,20 @@ export function lookup(c: Catalogs): Lookup {
       // Preparativo é a fórmula alquímica de um feitiço.
       ['preparations', spells],
     ]),
+    gear: {
+      lifestyles: byId(c.lifestyles.lifestyles),
+      lifeOptions: new Map(c.lifestyles.options.map((o) => [o.id, o.cost])),
+      identities: byId(c.lifestyles.identities),
+      weapons: byId(c.weapons.weapons),
+      armor: byId(c.armor.armor),
+      armorMods: byId(c.armor.modifications),
+      augmentations: byId(c.augmentations.augmentations),
+      grades: byId(c.augmentations.grades),
+      commlinks: byId(c.matrix.commlinks),
+      linkOptions: byId(c.matrix.commlinkOptions),
+      cyberdecks: byId(c.matrix.cyberdecks),
+      programs: byId(c.matrix.programs),
+      vehicles: byId(c.vehicles.vehicles),
+    },
   }
 }

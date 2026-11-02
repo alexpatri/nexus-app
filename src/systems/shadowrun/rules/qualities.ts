@@ -3,6 +3,7 @@ import type { Violation } from '@/core/rules/system'
 import type { Quality, QualityOption } from './catalogs'
 import type { Lookup } from './lookup'
 import { type QualityItem, type Sheet, violation } from './validate'
+import { present } from './resources'
 
 interface Cost {
   fixed: number
@@ -139,6 +140,9 @@ export function strictQualities(l: Lookup, d: Sheet, natural: Record<string, num
     }
     if (r?.special && (natural[r.special] ?? 0) <= 0) {
       add(it, '', 'qualities.requirementNotMet', { quality: q.id, requirement: r.special })
+    }
+    for (const x of q.excludes ?? []) {
+      if (present(d, x)) add(it, '', 'qualities.excluded', { quality: q.id, with: x.id })
     }
     const key = `${q.id}\u0000${it.choice ?? ''}`
     if (q.unique && seen.has(q.id)) add(it, '', 'qualities.unique', p)

@@ -2,6 +2,7 @@ import type { Violation } from '@/core/rules/system'
 import type { Lookup } from './lookup'
 import { aspects, type MagicData, mentorAdvantages } from './magic'
 import { optionKarma, qualityCost } from './qualities'
+import { lenientResources, type ResourcesData } from './resources'
 
 // data já conferido pelo Lenient.
 export interface Buy {
@@ -36,6 +37,7 @@ export interface Sheet {
     knowledge?: (SkillBuy & { key: string; name: string; category: string })[]
     languages?: (SkillBuy & { key: string; name: string; native?: boolean })[]
   }
+  resources?: ResourcesData
 }
 
 // Atributos que a ficha compra, na ordem de attributes.json.
@@ -87,11 +89,11 @@ export function violation(path: string, code: string, params?: Record<string, un
   return { step: stepOf(path), path, code, ...(params && { params }) }
 }
 
-function shape(path: string, expected: string) {
+export function shape(path: string, expected: string) {
   return violation(path, 'shape.invalid', { expected })
 }
 
-function isObject(v: unknown): v is Record<string, unknown> {
+export function isObject(v: unknown): v is Record<string, unknown> {
   return v !== null && typeof v === 'object' && !Array.isArray(v)
 }
 
@@ -103,7 +105,7 @@ const join = (path: string, key: string) => (path ? `${path}.${key}` : key)
 
 // object confere que v é objeto e passa cada campo para field, que devolve
 // false para campo que o formato não tem.
-function object(
+export function object(
   path: string,
   v: unknown,
   vs: Violation[],
@@ -120,7 +122,7 @@ function object(
 
 // Lista de itens com key: cada item é objeto, tem key string, e a key não se
 // repete em nenhuma lista da ficha. item recebe o path do item ("lista[key]").
-function list(
+export function list(
   path: string,
   v: unknown,
   vs: Violation[],
@@ -147,15 +149,15 @@ function list(
   })
 }
 
-function expectString(path: string, v: unknown, vs: Violation[]) {
+export function expectString(path: string, v: unknown, vs: Violation[]) {
   if (typeof v !== 'string') vs.push(shape(path, 'string'))
 }
 
-function expectInteger(path: string, v: unknown, vs: Violation[]) {
+export function expectInteger(path: string, v: unknown, vs: Violation[]) {
   if (!isInteger(v)) vs.push(shape(path, 'integer'))
 }
 
-const unknownId = (path: string, catalog: string, id: string) =>
+export const unknownId = (path: string, catalog: string, id: string) =>
   violation(path, 'catalog.unknownId', { catalog, id })
 
 function lenientQualities(path: string, v: unknown, vs: Violation[], keys: Set<string>, l: Lookup) {
@@ -366,6 +368,9 @@ export function lenient(data: unknown, l: Lookup): Violation[] {
         return true
       case 'qualities':
         lenientQualities(path, v, vs, keys, l)
+        return true
+      case 'resources':
+        lenientResources(path, v, vs, keys, l)
         return true
       case 'skills':
         lenientSkills(path, v, vs, keys, l)

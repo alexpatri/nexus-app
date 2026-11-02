@@ -12,6 +12,7 @@ import MagicScreen from './MagicScreen.vue'
 import MetatypeScreen from './MetatypeScreen.vue'
 import PrioritiesScreen from './PrioritiesScreen.vue'
 import QualitiesScreen from './QualitiesScreen.vue'
+import ResourcesScreen from './ResourcesScreen.vue'
 import SkillsScreen from './SkillsScreen.vue'
 
 const catalogs = shadowrunCatalogs()
@@ -405,5 +406,85 @@ describe('MagicScreen', () => {
     expect(
       s.w.find('[aria-label="Comprar mais um ponto de poder"]').attributes('disabled'),
     ).toBeDefined()
+  })
+})
+
+describe('ResourcesScreen', () => {
+  const fixture = (name: string) =>
+    structuredClone(
+      (readFixture(`fixtures/shadowrun/5e/${name}.json`) as { data: Record<string, unknown> }).data,
+    )
+  const row = (s: ReturnType<typeof setup>, name: string) =>
+    s.w.findAll('li').find((li) => li.find('.name').text() === name)!
+
+  it('mostra nuyen, Essência e o preço de cada compra do Beto', () => {
+    const s = setup(ResourcesScreen, fixture('beto-resources'), 'resources')
+    expect(s.w.find('[aria-label="Orçamento: nuyen"]').text()).toContain('2.810 ¥')
+    expect(s.w.find('[aria-label="Orçamento: nuyen"]').text()).toContain('de 70.000 ¥')
+    expect(s.w.find('.essence').text()).toContain('4,9')
+    expect(row(s, 'Baixo').find('.price').text()).toBe('12.000 ¥')
+    expect(row(s, 'Melhorias de Reação').find('.price').text()).toBe('26.000 ¥')
+    expect(row(s, 'Melhorias de Reação').find('.detail').text()).toContain('Essência 0,6')
+    expect(s.status()).toBe('Nuyen: 2.810 ¥ restantes')
+    expect(s.alert()).toBe('')
+  })
+
+  it('adiciona o primeiro estilo de vida como principal', async () => {
+    const data = fixture('beto-resources')
+    delete (data.resources as Record<string, unknown>).lifestyles
+    const s = setup(ResourcesScreen, data, 'resources')
+    expect(s.alert()).toBe('Escolha um estilo de vida principal.')
+    button('Adicionar estilo de vida').click()
+    await s.w.vm.$nextTick()
+    const note = (name: string) =>
+      inBody('.item')
+        .find((b) => b.querySelector('.name')?.textContent === name)!
+        .querySelector('.note')!.textContent
+    expect(note('Hospitalizado')).toBe('Só durante uma internação')
+    inBody('.item')
+      .find((b) => b.querySelector('.name')?.textContent === 'Médio')!
+      .click()
+    await s.w.vm.$nextTick()
+    button('Adicionar por 5.000 ¥/mês').click()
+    await s.w.vm.$nextTick()
+    const added = (s.data().resources as { lifestyles: { id: string; primary?: boolean }[] })
+      .lifestyles[0]!
+    expect(added).toMatchObject({ id: 'middle', primary: true })
+    // Troll paga o dobro.
+    expect(row(s, 'Médio').find('.price').text()).toBe('10.000 ¥')
+  })
+
+  it('bloqueia no seletor o que passa da Disponibilidade 12', async () => {
+    const s = setup(ResourcesScreen, fixture('beto-resources'), 'resources')
+    button('Adicionar ampliação').click()
+    await s.w.vm.$nextTick()
+    const note = inBody('.item')
+      .find((b) => b.querySelector('.name')?.textContent === 'Editor de dor')!
+      .querySelector('.note')!.textContent
+    expect(note).toBe('Disponibilidade 18, acima de 12')
+  })
+
+  it('converte carma em nuyen até 10', async () => {
+    const data = fixture('beto-resources')
+    ;(data.resources as Record<string, unknown>).karmaToNuyen = 9
+    const s = setup(ResourcesScreen, data, 'resources')
+    expect(s.w.find('[aria-label="Orçamento: nuyen"]').text()).toContain('de 68.000 ¥')
+    button('Aumentar carma convertido').click()
+    await s.w.vm.$nextTick()
+    expect((s.data().resources as { karmaToNuyen: number }).karmaToNuyen).toBe(10)
+    expect(button('Aumentar carma convertido').hasAttribute('disabled')).toBe(true)
+  })
+
+  it('marca a capacidade estourada e o implante que precisa de hospedeiro', () => {
+    const s = setup(ResourcesScreen, fixture('gear-capacity'), 'resources')
+    expect(row(s, 'Sistema básico de ciber-olhos').find('.problem').text()).toBe(
+      'Sistema básico de ciber-olhos: 5 de capacidade ocupada em 4.',
+    )
+    expect(row(s, 'Drone ocular').find('.problem').text()).toBe(
+      'Drone ocular só funciona instalado em outro implante.',
+    )
+    expect(row(s, 'Ampliação de visão').find('.detail').text()).toContain(
+      'em Sistema básico de ciber-olhos',
+    )
   })
 })
