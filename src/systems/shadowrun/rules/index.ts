@@ -7,6 +7,7 @@ import type { Catalogs } from './catalogs'
 import { lookup } from './lookup'
 import { hasAstralPerception, magicCosts, specialBase, strictMagic } from './magic'
 import { type Effects, qualityEffects, strictQualities } from './qualities'
+import { gearCalc, type GearOut, startingLifestyle, strictResources } from './resources'
 import { deriveSkills, skillCosts, type SkillsOut, strictSkills } from './skills'
 import { baseAttrs, columns, lenient, type Sheet, specialAttrs, violation } from './validate'
 
@@ -43,6 +44,25 @@ export const codes = [
   'magic.parameterRequired',
   'magic.parameterNotAllowed',
   'magic.spiritsMax',
+  'qualities.excluded',
+  'gear.availabilityMax',
+  'gear.ratingOutOfRange',
+  'gear.costOutOfRange',
+  'gear.variantRequired',
+  'gear.parameterRequired',
+  'gear.parameterNotAllowed',
+  'gear.gradeNotAllowed',
+  'gear.notInstallable',
+  'gear.hostRequired',
+  'gear.excluded',
+  'gear.duplicate',
+  'gear.capacityExceeded',
+  'gear.deviceRatingMax',
+  'gear.deckArrayInvalid',
+  'resources.primaryLifestyleDuplicate',
+  'resources.lifestyleNotAllowed',
+  'resources.startingRollOutOfRange',
+  'essence.depleted',
 ]
 
 export interface Budget {
@@ -62,6 +82,7 @@ export interface Derived {
   lifting?: Record<string, number>
   reputation: Record<string, number>
   skills?: SkillsOut
+  startingNuyen?: number
   budgets: Record<string, Budget>
 }
 
@@ -69,6 +90,10 @@ export interface Derived {
 // com o data atual fica ausente.
 interface Calc {
   natural: Record<string, number>
+  // O natural com os bônus de ampliações e poderes, até o teto.
+  augmented: Record<string, number>
+  loss: Record<string, number>
+  gear: GearOut
   essence?: number
   metatypeAtPriority: boolean
   budgets: Record<string, Budget>
@@ -119,7 +144,7 @@ export function createShadowrun(catalogs: Catalogs): RulesSystem {
     ) {
       throw new Error('shadowrun: catálogos incompletos')
     }
-    const env: Env = { rating: 1, 'karma.total': 0, 'attr.ess': 6 }
+    const env: Env = { rating: 1, 'karma.total': 0, 'attr.ess': 6, 'essence.lost': 0.5 }
     for (const a of [...baseAttrs, ...specialAttrs]) env[`attr.${a}`] = 1
     const d = mech.derived
     const all = [
@@ -144,6 +169,7 @@ export function createShadowrun(catalogs: Catalogs): RulesSystem {
       mech.progression.costs.attribute,
       ...Object.values(formulas.limits),
       ...Object.values(formulas.attributeTests),
+      d.essenceLoss.loss,
     ]
     for (const f of all) evaluate(f, env)
   }
@@ -161,7 +187,7 @@ export function createShadowrun(catalogs: Catalogs): RulesSystem {
 
   function env(c: Calc): Env {
     const e: Env = { 'karma.total': 0 }
-    for (const [a, v] of Object.entries(c.natural)) e[`attr.${a}`] = v
+    for (const [a, v] of Object.entries(c.augmented)) e[`attr.${a}`] = v
     if (c.essence !== undefined) e['attr.ess'] = c.essence
     return e
   }
@@ -171,7 +197,15 @@ export function createShadowrun(catalogs: Catalogs): RulesSystem {
     const prio = d.priorities ?? {}
     const m = d.metatype ? metatypes.get(d.metatype) : undefined
     const fx = qualityEffects(l, d)
-    const c: Calc = { natural: {}, metatypeAtPriority: false, budgets: {}, effects: fx }
+    const c: Calc = {
+      natural: {},
+      augmented: {},
+      loss: {},
+      gear: gearCalc(l, mech, d),
+      metatypeAtPriority: false,
+      budgets: {},
+      effects: fx,
+    }
     const sk = skillCosts(l, mech, d)
     const evalInt = (f: unknown, e: Env) => Math.trunc(evaluate(f, e))
     const points = (a: string) => attrs[a]?.points ?? 0
@@ -179,11 +213,24 @@ export function createShadowrun(catalogs: Catalogs): RulesSystem {
 
     if (m) {
       for (const a of withEdge) c.natural[a] = (m.attributes[a]?.min ?? 0) + points(a) + karma(a)
-      c.essence = m.attributes.ess?.start ?? 0
     }
     for (const a of ['mag', 'res']) {
       const base = specialBase(l, d, a)
       if (base !== undefined) c.natural[a] = base + points(a) + karma(a)
+    }
+    if (m) {
+      const start = (m.attributes.ess?.start ?? 0) * 1000
+      c.essence = (start - c.gear.essence) / 1000
+      const loss = evalInt(mech.derived.essenceLoss.loss, { 'essence.lost': c.gear.essence / 1000 })
+      for (const a of mech.derived.essenceLoss.attributes) {
+        const v = c.natural[a]
+        if (v === undefined) continue
+        c.loss[a] = loss
+        c.natural[a] = Math.max(0, v - loss)
+      }
+    }
+    for (const [a, v] of Object.entries(c.natural)) {
+      c.augmented[a] = v + (baseAttrs.includes(a) ? Math.trunc(c.gear.bonus[a] ?? 0) : 0)
     }
 
     const metaRow = priorities.get(prio.metatype ?? '')
@@ -208,8 +255,16 @@ export function createShadowrun(catalogs: Catalogs): RulesSystem {
     }
     c.budgets.positiveQualities = { total: mech.creation.qualities.positiveMax, spent: fx.positive }
     c.budgets.negativeQualities = { total: mech.creation.qualities.negativeMax, spent: fx.negative }
+    const res = mech.creation.resources
+    const k2n = d.resources?.karmaToNuyen ?? 0
     const resRow = priorities.get(prio.resources ?? '')
-    if (resRow) c.budgets.nuyen = { total: resRow.resources, spent: 0 }
+    if (resRow) {
+      c.budgets.nuyen = {
+        total: resRow.resources + k2n * res.karmaToNuyen.rate,
+        spent: c.gear.nuyen,
+      }
+      c.budgets.karmaToNuyen = { total: res.karmaToNuyen.maxKarma, spent: k2n }
+    }
     if (m) {
       const e = env(c)
       c.budgets.knowledge = {
@@ -221,7 +276,7 @@ export function createShadowrun(catalogs: Catalogs): RulesSystem {
 
     // Carma sobe degrau a degrau a partir do valor com os pontos. Sem metatipo,
     // o degrau inicial dos atributos comuns é desconhecido e o orçamento some.
-    let spent = fx.positive + sk.karma + magicCosts(l, mech, d, c.natural, c.budgets)
+    let spent = fx.positive + sk.karma + magicCosts(l, mech, d, c.natural, c.budgets) + k2n
     let priced = true
     for (const a of [...baseAttrs, ...specialAttrs]) {
       if (karma(a) === 0) continue
@@ -255,9 +310,6 @@ export function createShadowrun(catalogs: Catalogs): RulesSystem {
     for (const col of columns) if (!prio[col]) required(`priorities.${col}`)
     if (!d.metatype) required('metatype')
     if (!(d.identity?.name ?? '').trim()) required('identity.name')
-    // resources entra na fatia 4.4; até lá, os dois sempre faltam.
-    required('resources.lifestyles')
-    required('resources.startingNuyenRoll')
 
     const byLetter = new Map<string, string[]>()
     for (const col of columns) {
@@ -288,7 +340,8 @@ export function createShadowrun(catalogs: Catalogs): RulesSystem {
         }
         continue
       }
-      const max = (mech.creation.specialAttributeMax[a] ?? 0) + (c.effects.attrMax[a] ?? 0)
+      const max =
+        (mech.creation.specialAttributeMax[a] ?? 0) + (c.effects.attrMax[a] ?? 0) - (c.loss[a] ?? 0)
       const value = c.natural[a] ?? 0
       if (value > max)
         vs.push(violation(layer(a, d), 'attributes.aboveMax', { attribute: a, value, max }))
@@ -315,6 +368,7 @@ export function createShadowrun(catalogs: Catalogs): RulesSystem {
       ...strictMagic(l, mech, d, c.natural, env(c)),
       ...strictQualities(l, d, c.natural),
       ...strictSkills(l, mech, d, c.effects),
+      ...strictResources(l, mech, d, c.essence),
     )
 
     for (const id of Object.keys(c.budgets).sort()) {
@@ -356,22 +410,34 @@ export function createShadowrun(catalogs: Catalogs): RulesSystem {
       budgets: c.budgets,
     }
     const m = d.metatype ? metatypes.get(d.metatype) : undefined
-    const skills = deriveSkills(l, d, c.natural)
+    const skills = deriveSkills(l, d, c.augmented, c.gear.pool)
     if (skills) out.skills = skills
+    const n = c.budgets.nuyen
+    const sn = startingLifestyle(l, d)?.startingNuyen
+    if (n && sn && d.resources?.startingNuyenRoll !== undefined) {
+      const left = Math.min(mech.creation.resources.nuyenCarryOver, Math.max(0, n.total - n.spent))
+      out.startingNuyen = d.resources.startingNuyenRoll * sn.multiplier + left
+    }
     if (!m) return out
 
     out.attributes = Object.fromEntries(
-      Object.entries(c.natural).map(([a, v]) => [a, { natural: v, augmented: v }]),
+      Object.entries(c.natural).map(([a, v]) => [a, { natural: v, augmented: c.augmented[a]! }]),
     )
     out.essence = c.essence
     const map = <K extends string>(fs: Record<K, unknown>) =>
       Object.fromEntries(Object.entries(fs).map(([k, f]) => [k, ev(f)]))
     out.limits = Object.fromEntries(
-      Object.entries(map(formulas.limits)).map(([id, v]) => [id, v + (c.effects.limit[id] ?? 0)]),
+      Object.entries(map(formulas.limits)).map(([id, v]) => [
+        id,
+        v + (c.effects.limit[id] ?? 0) + (c.gear.limit[id] ?? 0),
+      ]),
     )
     const dice = (n: number) => Math.min(n, md.initiative.maxDice)
     out.initiative = {
-      physical: { base: ev(md.initiative.physical.base), dice: dice(md.initiative.physical.dice) },
+      physical: {
+        base: ev(md.initiative.physical.base),
+        dice: dice(md.initiative.physical.dice + Math.trunc(c.gear.dice)),
+      },
       matrixAR: { base: ev(md.initiative.matrixAR.base), dice: dice(md.initiative.matrixAR.dice) },
     }
     if (hasAstralPerception(d)) {
@@ -380,9 +446,11 @@ export function createShadowrun(catalogs: Catalogs): RulesSystem {
         dice: dice(md.initiative.astral.dice),
       }
     }
-    // O tecnomante entra em RV com a persona viva, sem aparelho.
-    if (d.magic?.awakening === 'technomancer') {
+    // O tecnomante entra em RV com a persona viva; os outros, com o primeiro ciberdeck.
+    if (d.magic?.awakening === 'technomancer')
       e['matrix.dataProcessing'] = ev(md.livingPersona.dataProcessing)
+    else if (c.gear.deckDP !== undefined) e['matrix.dataProcessing'] = c.gear.deckDP
+    if (e['matrix.dataProcessing'] !== undefined) {
       out.initiative.matrixVRCold = {
         base: ev(md.initiative.matrixVRCold.base),
         dice: dice(md.initiative.matrixVRCold.dice),
@@ -398,10 +466,7 @@ export function createShadowrun(catalogs: Catalogs): RulesSystem {
       overflow: ev(md.monitors.overflow.boxes) + c.effects.overflow,
       woundPenalty: 0,
     }
-    out.armor = m.traits
-      .flatMap((t) => t.modifiers ?? [])
-      .filter((mod) => mod.target === 'armor')
-      .reduce((sum, mod) => sum + ev(mod.add), 0)
+    out.armor = c.gear.armor
     out.attributeTests = map(formulas.attributeTests)
     out.movement = {
       walk: ev(md.movement.walk),

@@ -85,16 +85,21 @@ function rated(rating: number, attr: number | undefined): Rated {
   return attr === undefined ? { rating } : { rating, pool: attr + rating }
 }
 
+// natural são os atributos ampliados; bonus soma à parada (Habilidade Aprimorada).
 export function deriveSkills(
   l: Lookup,
   d: Sheet,
   natural: Record<string, number>,
+  bonus: Record<string, number> = {},
 ): SkillsOut | undefined {
   const out: SkillsOut = {}
   const active = Object.entries(activeRatings(l, d))
   if (active.length) {
     out.active = Object.fromEntries(
-      active.map(([id, r]) => [id, rated(r, natural[l.skills.get(id)?.attribute ?? ''])]),
+      active.map(([id, r]) => {
+        const attr = natural[l.skills.get(id)?.attribute ?? '']
+        return [id, rated(r, attr === undefined ? undefined : attr + (bonus[id] ?? 0))]
+      }),
     )
   }
   const knowledge = (d.skills?.knowledge ?? []).filter((k) => (k.points ?? 0) + (k.karma ?? 0) > 0)

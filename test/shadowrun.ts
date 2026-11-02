@@ -24,6 +24,12 @@ const names = [
   'adept-powers',
   'complex-forms',
   'spells',
+  'lifestyles',
+  'weapons',
+  'armor',
+  'augmentations',
+  'matrix',
+  'vehicles',
 ]
 
 export function shadowrunCatalogs(): RawCatalogs {
