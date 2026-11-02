@@ -8,20 +8,22 @@ const emit = defineEmits<{ change: [value: number] }>()
   <div class="stepper" role="group" :aria-label="label">
     <button
       type="button"
+      class="sr-outline"
       :aria-label="`Diminuir ${label}`"
       :disabled="value <= props.min"
       @click="emit('change', value - 1)"
     >
-      −
+      <span>−</span>
     </button>
     <output class="numeric">{{ value }}</output>
     <button
       type="button"
+      class="sr-outline"
       :aria-label="`Aumentar ${label}`"
       :disabled="props.max !== undefined && value >= props.max"
       @click="emit('change', value + 1)"
     >
-      +
+      <span>+</span>
     </button>
   </div>
 </template>
@@ -36,26 +38,14 @@ const emit = defineEmits<{ change: [value: number] }>()
 button {
   width: var(--touch-min);
   height: var(--touch-min);
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-control);
-  background: var(--color-surface-raised);
-  color: var(--color-text);
-  font: inherit;
   font-size: 1.375rem;
-  cursor: pointer;
-}
-
-button:disabled {
-  border-color: var(--color-surface-sunken);
-  background: transparent;
-  color: var(--color-rule);
-  cursor: not-allowed;
+  line-height: 1;
 }
 
 output {
   min-width: 2ch;
   text-align: center;
-  font-size: 1.25rem;
+  font-size: 1.625rem;
   font-weight: 700;
   color: var(--sr-pen);
 }

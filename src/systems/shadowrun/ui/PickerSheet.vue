@@ -116,7 +116,7 @@ function toggle(item: T) {
   position: fixed;
   inset: 0;
   z-index: var(--z-overlay);
-  background: rgba(27, 35, 51, 0.5);
+  background: rgb(30 31 34 / 55%);
 }
 
 .sheet {
@@ -127,24 +127,27 @@ function toggle(item: T) {
   background: var(--color-surface);
   color: var(--color-text);
   font-family: var(--font-body);
-  border-top: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
+  clip-path: polygon(16px 0, 100% 0, 100% 100%, 0 100%, 0 16px);
 }
 
+/* O topo da folha é a faixa de carvão dos cabeçalhos do livro. */
 .grip {
-  align-self: center;
-  width: 40px;
-  height: 4px;
-  margin-top: var(--space-2);
-  border-radius: 2px;
-  background: var(--color-rule);
+  align-self: stretch;
+  height: 14px;
+  background: var(--sr-coal);
+  background-image: linear-gradient(var(--sr-slate-2), var(--sr-slate-2));
+  background-size: 40px 4px;
+  background-position: center 8px;
+  background-repeat: no-repeat;
 }
 
 header {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  padding: 6px var(--space-2) 0 var(--space-4);
+  padding: 2px var(--space-2) 12px var(--space-4);
+  background: var(--sr-coal);
+  color: var(--sr-on-dark);
 }
 
 .heading {
@@ -155,13 +158,17 @@ header {
 
 h2 {
   margin: 0;
-  font-size: 1.25rem;
-  font-weight: 700;
+  font-family: var(--font-display);
+  font-size: 0.9375rem;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
 .subtitle {
-  font-size: 0.875rem;
-  color: var(--color-text-muted);
+  font-family: var(--font-numeric);
+  font-size: 1rem;
+  color: var(--sr-on-dark-muted);
 }
 
 .close {
@@ -173,7 +180,7 @@ h2 {
   border: 0;
   border-radius: var(--radius-control);
   background: transparent;
-  color: var(--color-text);
+  color: var(--sr-on-dark);
   cursor: pointer;
 }
 
@@ -240,7 +247,8 @@ li {
 }
 
 .name {
-  font-size: var(--text-md);
+  font-family: var(--font-numeric);
+  font-size: 1.1875rem;
   font-weight: 600;
 }
 
@@ -256,8 +264,8 @@ li {
 
 .price {
   flex-shrink: 0;
-  font-size: var(--text-sm);
-  font-weight: 700;
+  font-size: 1.0625rem;
+  font-weight: 600;
 }
 
 .item:disabled .price {
