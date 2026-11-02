@@ -131,6 +131,7 @@ const bound = computed(() =>
         types: c.spriteTypes,
         title: 'Sprites registrados',
         unit: 'tarefas',
+        one: 'tarefa',
         add: 'Registrar sprite',
       }
     : ['magician', 'mystic-adept', 'aspected-magician'].includes(awakening.value ?? '')
@@ -140,6 +141,7 @@ const bound = computed(() =>
           types: c.spiritTypes,
           title: 'Espíritos vinculados',
           unit: 'serviços',
+          one: 'serviço',
           add: 'Vincular espírito',
         }
       : undefined,
@@ -335,7 +337,7 @@ useFooter({
 
   <section v-if="bound" class="side">
     <h2>{{ bound.title }}</h2>
-    <p class="intro">Cada um dos {{ bound.unit }} custa 1 de carma; até {{ cha }}, o Carisma.</p>
+    <p class="intro">Cada {{ bound.one }} custa 1 de carma; até {{ cha }}, o Carisma.</p>
     <ul>
       <li v-for="x in boundItems" :key="x.key" class="block">
         <div class="field">
@@ -351,7 +353,7 @@ useFooter({
           </select>
         </div>
         <div class="field">
-          <span class="label">{{ bound.unit }}</span>
+          <span class="label capital">{{ bound.unit }}</span>
           <NumberStepper
             :label="`${bound.unit} de ${nameOf(bound.types, x.type)}`"
             :value="Number(x[bound.count] ?? 0)"
@@ -544,6 +546,10 @@ li {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-4);
+}
+
+.capital::first-letter {
+  text-transform: uppercase;
 }
 
 .label {

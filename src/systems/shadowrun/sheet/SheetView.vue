@@ -189,7 +189,8 @@ const magic = computed(() => {
           </span>
         </article>
         <p v-if="warnings.length" class="warning">
-          {{ warnings.length }} aviso(s) do livro. A ficha continua valendo; revise ao editar.
+          {{ warnings.length === 1 ? '1 aviso' : `${warnings.length} avisos` }} do livro. A ficha
+          continua valendo; revise ao editar.
         </p>
 
         <h2>Condição</h2>
@@ -250,7 +251,9 @@ const magic = computed(() => {
           </div>
           <div>
             <dt>Nuyen inicial</dt>
-            <dd class="numeric">{{ yen(derived?.startingNuyen ?? 0) }}</dd>
+            <dd class="numeric">
+              {{ derived?.startingNuyen === undefined ? '—' : yen(derived.startingNuyen) }}
+            </dd>
           </div>
         </dl>
       </section>
@@ -491,21 +494,21 @@ dd {
 
 .tabs {
   display: flex;
-  overflow-x: auto;
   background: var(--color-surface-raised);
   border-top: var(--border-width) solid var(--color-rule);
 }
 
 .tabs button {
-  flex: 1 0 auto;
+  flex: 1 1 0;
+  min-width: 0;
   min-height: 52px;
-  padding: 0 var(--space-3);
+  padding: 0 2px;
   border: 0;
   border-top: 3px solid transparent;
   background: transparent;
   color: var(--color-text-muted);
   font: inherit;
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   font-weight: 600;
   cursor: pointer;
 }

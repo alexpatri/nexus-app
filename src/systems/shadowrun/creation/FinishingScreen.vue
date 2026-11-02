@@ -124,7 +124,10 @@ useFooter({
     <h2>Finalizar</h2>
     <ul v-if="pending.length" class="pending">
       <li v-for="p in pending" :key="p.step">
-        <span>Passo {{ p.number }}, {{ p.title }}: {{ p.n }} pendência(s)</span>
+        <span
+          >Passo {{ p.number }}, {{ p.title }}:
+          {{ p.n === 1 ? '1 pendência' : `${p.n} pendências` }}</span
+        >
         <RouterLink :to="p.to">Resolver</RouterLink>
       </li>
     </ul>

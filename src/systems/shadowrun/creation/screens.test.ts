@@ -559,9 +559,7 @@ describe('KarmaScreen', () => {
   it('mostra os sprites do tecnomante', () => {
     const s = setup(KarmaScreen, fixture('jefferson-final'), 'karma')
     expect(s.w.text()).toContain('Sprites registrados')
-    expect(s.w.text()).toContain(
-      'Cada um dos tarefas custa 1 de carma'.replace('dos tarefas', 'dos tarefas'),
-    )
+    expect(s.w.text()).toContain('Cada tarefa custa 1 de carma; até 3, o Carisma.')
   })
 
   it('adiciona contato e trava o + quando chega a 7', async () => {
@@ -621,7 +619,7 @@ describe('passos finais', () => {
       finalize: async () => void calls.push('finalize'),
     }))
     expect(s.w.find('.sin .who').text()).toBe('Beto')
-    expect(s.w.find('.pending').text()).toContain('Passo 7, Carma e contatos: 1 pendência(s)')
+    expect(s.w.find('.pending').text()).toContain('Passo 7, Carma e contatos: 1 pendência')
     expect(s.w.find('button:not(.add)').attributes('disabled')).toBeDefined()
 
     const name = s.w.find('#identity-name')
