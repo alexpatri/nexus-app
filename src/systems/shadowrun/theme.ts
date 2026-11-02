@@ -1,38 +1,66 @@
-import '@fontsource-variable/public-sans'
+import '@fontsource-variable/atkinson-hyperlegible-next'
+import '@fontsource/barlow-condensed/400.css'
+import '@fontsource/barlow-condensed/500.css'
+import '@fontsource/barlow-condensed/600.css'
+import '@fontsource/barlow-condensed/700.css'
+import '@fontsource/michroma/400.css'
 
 import type { Theme, ThemeFont } from '@/design/contract'
 
-const publicSans: ThemeFont = {
-  family: "'Public Sans Variable', system-ui, sans-serif",
+// O texto corrido é o do Nexus, para os sistemas conversarem com o shell; os
+// títulos e os dados são do Shadowrun (frontend-design-shadowrun.md).
+const body: ThemeFont = { family: "'Atkinson Hyperlegible Next Variable', system-ui, sans-serif" }
+const michroma: ThemeFont = {
+  family: "'Michroma', 'Atkinson Hyperlegible Next Variable', sans-serif",
+}
+const barlow: ThemeFont = {
+  family: "'Barlow Condensed', 'Atkinson Hyperlegible Next Variable', sans-serif",
 }
 
-// frontend-design-shadowrun.md, seção 1. success não está na spec: é o verde
-// mais próximo do Nexus que passa 4,5:1 sobre o papel do Shadowrun.
+const font = { body, display: michroma, numeric: barlow }
+const shape = { radiusControl: '0px', radiusSheet: '0px', borderWidth: '1px' }
+
+// O papel cinza do livro, com carvão, carmim e âmbar.
 export const shadowrunTheme = {
   scheme: 'light',
   color: {
-    surface: '#E3E8E2',
-    surfaceRaised: '#EEF2EC',
-    surfaceSunken: '#D6DDD7',
-    text: '#1B2333',
-    textMuted: '#4F5D66',
-    border: '#4F5D66',
-    rule: '#9AA7A3',
-    accent: '#2340A8',
+    surface: '#E4E4E0',
+    surfaceRaised: '#F2F2EF',
+    surfaceSunken: '#D3D3CF',
+    text: '#1E1F22',
+    textMuted: '#55585E',
+    border: '#55585E',
+    rule: '#B9BAB5',
+    accent: '#8E1B1E',
     onAccent: '#FFFFFF',
-    danger: '#A61E2D',
+    danger: '#B42318',
     onDanger: '#FFFFFF',
     success: '#146B44',
-    focus: '#2340A8',
+    focus: '#8E1B1E',
   },
-  font: {
-    body: publicSans,
-    display: publicSans,
-    numeric: publicSans,
+  font,
+  shape,
+} satisfies Theme
+
+// Mapeado, ainda sem uso: a página vira o carvão das tabelas do livro e o
+// âmbar passa a ser a cor de todo dado.
+export const shadowrunDarkTheme = {
+  scheme: 'dark',
+  color: {
+    surface: '#17181B',
+    surfaceRaised: '#222428',
+    surfaceSunken: '#0F1012',
+    text: '#E8E6E1',
+    textMuted: '#A3A6AC',
+    border: '#A3A6AC',
+    rule: '#3A3D43',
+    accent: '#9E2024',
+    onAccent: '#FFFFFF',
+    danger: '#FF6B5E',
+    onDanger: '#17181B',
+    success: '#4FC08D',
+    focus: '#F0B429',
   },
-  shape: {
-    radiusControl: '2px',
-    radiusSheet: '12px',
-    borderWidth: '1px',
-  },
+  font,
+  shape,
 } satisfies Theme
