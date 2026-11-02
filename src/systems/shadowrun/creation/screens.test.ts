@@ -407,7 +407,7 @@ describe('MagicScreen', () => {
       data: Record<string, unknown>
     }
     const s = setup(MagicScreen, clara.data, 'magic')
-    expect(s.w.findAll('.group')).toHaveLength(3)
+    expect(s.w.findAll('.cells')).toHaveLength(3)
     expect(s.w.findAll('.cost').map((x) => x.text())).toEqual(['0,25', '0,5', '0,5', '0,5', '0,5'])
     expect(s.alert()).toBe('Os poderes passam dos pontos de poder em 0,25.')
   })
