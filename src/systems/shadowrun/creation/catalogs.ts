@@ -1,9 +1,25 @@
 import { shallowRef } from 'vue'
 
-import type { AdeptPower, Catalogs, Metatype, PriorityRow, Quality, Skill } from '../rules/catalogs'
+import type {
+  AdeptPower,
+  ArmorItem,
+  ArmorMod,
+  Augmentation,
+  Catalogs,
+  Device,
+  GearItem,
+  Grade,
+  Lifestyle,
+  Mechanics,
+  Metatype,
+  PriorityRow,
+  Quality,
+  Skill,
+} from '../rules/catalogs'
 import { type Lookup, lookup } from '../rules/lookup'
 
 type Named = { id: string; name: string }
+type Described = { name: string; desc?: string }
 
 // Os catálogos que as telas leem, além do que as regras usam. Preenchido pelo
 // world.rules antes de a criação abrir.
@@ -24,13 +40,30 @@ export interface UiCatalogs {
   rituals: (Named & { desc?: string })[]
   complexForms: (Named & { desc?: string })[]
   adeptPowers: (AdeptPower & { name: string; desc?: string })[]
+  lifestyles: (Lifestyle & Described)[]
+  lifestyleOptions: (Named & { cost: { add?: number; percent?: number }; desc?: string })[]
+  weapons: (GearItem & Described)[]
+  weaponCategories: Named[]
+  armor: (ArmorItem & Described)[]
+  armorModifications: (ArmorMod & Described)[]
+  augmentations: (Augmentation & Described)[]
+  grades: (Grade & { name: string })[]
+  commlinks: (Device & Described)[]
+  commlinkOptions: (GearItem & Described)[]
+  cyberdecks: (Device & Described)[]
+  programs: (GearItem & Described)[]
+  vehicles: (GearItem & Described)[]
+  vehicleCategories: Named[]
   // Nível máximo de perícia na criação (mechanics.json#creation.skills.maxRating).
   skillMaxRating: number
+  mechanics: Mechanics
   lookup: Lookup
 }
 
 export interface RawCatalogs extends Catalogs {
   attributes: { attributes: UiCatalogs['attributes'] }
+  weapons: Catalogs['weapons'] & { categories: Named[] }
+  vehicles: Catalogs['vehicles'] & { categories: Named[] }
 }
 
 export function buildUiCatalogs(c: RawCatalogs): UiCatalogs {
@@ -51,7 +84,22 @@ export function buildUiCatalogs(c: RawCatalogs): UiCatalogs {
     rituals: c.spells.rituals as UiCatalogs['rituals'],
     complexForms: c['complex-forms'].complexForms as UiCatalogs['complexForms'],
     adeptPowers: c['adept-powers'].powers as UiCatalogs['adeptPowers'],
+    lifestyles: c.lifestyles.lifestyles as UiCatalogs['lifestyles'],
+    lifestyleOptions: c.lifestyles.options as UiCatalogs['lifestyleOptions'],
+    weapons: c.weapons.weapons as UiCatalogs['weapons'],
+    weaponCategories: c.weapons.categories,
+    armor: c.armor.armor as UiCatalogs['armor'],
+    armorModifications: c.armor.modifications as UiCatalogs['armorModifications'],
+    augmentations: c.augmentations.augmentations as UiCatalogs['augmentations'],
+    grades: c.augmentations.grades as UiCatalogs['grades'],
+    commlinks: c.matrix.commlinks as UiCatalogs['commlinks'],
+    commlinkOptions: c.matrix.commlinkOptions as UiCatalogs['commlinkOptions'],
+    cyberdecks: c.matrix.cyberdecks as UiCatalogs['cyberdecks'],
+    programs: c.matrix.programs as UiCatalogs['programs'],
+    vehicles: c.vehicles.vehicles as UiCatalogs['vehicles'],
+    vehicleCategories: c.vehicles.categories,
     skillMaxRating: c.mechanics.creation.skills.maxRating,
+    mechanics: c.mechanics,
     lookup: lookup(c),
   }
 }

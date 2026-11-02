@@ -211,6 +211,7 @@ export interface Capacity {
 // O que um nível ou uma variante troca no item.
 export interface AugPart {
   id?: string
+  name?: string
   essence?: unknown
   capacity?: Capacity | 'included'
   availability?: Availability | null

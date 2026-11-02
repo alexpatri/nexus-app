@@ -246,7 +246,7 @@ function gearEval(f: unknown, rating: number): number {
 }
 
 // Preço de catálogo: número, fórmula, { add }, { value } ou o mínimo da faixa.
-function price(cost: unknown, rating: number): number {
+export function price(cost: unknown, rating: number): number {
   if (isObject(cost) && !isExpr(cost)) {
     for (const k of ['add', 'value', 'min']) if (k in cost) return gearEval(cost[k], rating)
     return 0
@@ -261,7 +261,11 @@ function costRange(cost: unknown): { min: number; max: number } | undefined {
   return undefined
 }
 
-const ratingOf = (r: number | undefined, rng?: RatingRange) => r ?? rng?.min ?? 1
+export const ratingOf = (r: number | undefined, rng?: RatingRange) => r ?? rng?.min ?? 1
+
+// Disponibilidade própria do item no nível.
+export const availabilityOf = (a: Availability | null | undefined, rating: number) =>
+  a ? gearEval(a.value, rating) : 0
 
 // O item com o nível ou a variante escolhida por cima.
 export function augPart(a: Augmentation, it: AugItem): AugPart {
@@ -289,6 +293,8 @@ export interface GearOut {
   limit: Record<string, number>
   pool: Record<string, number>
   deckDP?: number
+  // Nuyen e Essência (milésimos) de cada item, pela key, para a tela.
+  items: Record<string, { nuyen: number; essence?: number }>
 }
 
 const ceilDiv = (num: number, den: number) => Math.ceil(num / den)
@@ -297,7 +303,21 @@ const hundredths = (x: number) => Math.round(x * 100)
 export function gearCalc(l: Lookup, mech: Mechanics, d: Sheet): GearOut {
   const g = l.gear
   const res = d.resources ?? {}
-  const out: GearOut = { nuyen: 0, essence: 0, bonus: {}, armor: 0, dice: 0, limit: {}, pool: {} }
+  const out: GearOut = {
+    nuyen: 0,
+    essence: 0,
+    bonus: {},
+    armor: 0,
+    dice: 0,
+    limit: {},
+    pool: {},
+    items: {},
+  }
+  const spend = (key: string, n: number) => {
+    out.nuyen += n
+    const it = (out.items[key] ??= { nuyen: 0 })
+    it.nuyen += n
+  }
   const meta = d.metatype ? l.metatypes.get(d.metatype) : undefined
   const traitMods = meta?.traits.flatMap((t) => t.modifiers ?? []) ?? []
 
@@ -317,35 +337,35 @@ export function gearCalc(l: Lookup, mech: Mechanics, d: Sheet): GearOut {
       num *= m
       den *= 100
     }
-    out.nuyen += ceilDiv(num * (ls.months ?? 1), den)
+    spend(ls.key, ceilDiv(num * (ls.months ?? 1), den))
   }
   const sin = g.identities.get('fake-sin')!
   const license = g.identities.get('fake-license')!
   for (const id of res.identities ?? []) {
-    out.nuyen += price(sin.cost, ratingOf(id.rating, sin.rating))
+    spend(id.key, price(sin.cost, ratingOf(id.rating, sin.rating)))
     for (const lc of id.licenses ?? [])
-      out.nuyen += price(license.cost, ratingOf(lc.rating, license.rating))
+      spend(id.key, price(license.cost, ratingOf(lc.rating, license.rating)))
   }
   for (const w of res.weapons ?? []) {
     const it = g.weapons.get(w.id)
-    if (it) out.nuyen += price(it.cost, ratingOf(w.rating, it.rating)) * (w.quantity ?? 1)
+    if (it) spend(w.key, price(it.cost, ratingOf(w.rating, it.rating)) * (w.quantity ?? 1))
   }
   let worn = 0
   const best: Record<string, number> = { helmet: 0, shield: 0 }
   for (const a of res.armor ?? []) {
     const it = g.armor.get(a.id)
     if (!it) continue
-    out.nuyen += costRange(it.cost) && a.cost !== undefined ? a.cost : price(it.cost, 1)
+    spend(a.key, costRange(it.cost) && a.cost !== undefined ? a.cost : price(it.cost, 1))
     let v = typeof it.armor === 'number' ? it.armor : 0
     for (const o of it.options ?? []) {
       if (!a.options?.includes(o.id)) continue
-      out.nuyen += price(o.cost, 1)
+      spend(a.key, price(o.cost, 1))
       if (typeof o.armor === 'number') v = Math.max(v, o.armor)
       else if (o.armor) v += gearEval(o.armor.add, 1)
     }
     for (const m of a.modifications ?? []) {
       const mod = g.armorMods.get(m.id)
-      if (mod) out.nuyen += price(mod.cost, ratingOf(m.rating, mod.rating))
+      if (mod) spend(a.key, price(mod.cost, ratingOf(m.rating, mod.rating)))
     }
     if (it.category === 'helmet' || it.category === 'shield') {
       const add = typeof it.armor === 'object' ? gearEval(it.armor.add, 1) : 0
@@ -379,26 +399,28 @@ export function gearCalc(l: Lookup, mech: Mechanics, d: Sheet): GearOut {
     const p = augPart(a, it)
     const r = ratingOf(it.rating, a.rating)
     const gr = g.grades.get(it.grade ?? '') ?? standard
-    out.nuyen += ceilDiv(Math.round(price(p.cost, r)) * hundredths(gr.cost), 100)
+    spend(it.key, ceilDiv(Math.round(price(p.cost, r)) * hundredths(gr.cost), 100))
     if (!it.installedIn && p.essence !== undefined && p.essence !== null) {
       const milli = Math.round(gearEval(p.essence, r) * 1000)
       const mul = a.type === 'cyberware' ? lossMul : 100
-      out.essence += ceilDiv(milli * hundredths(gr.essence) * mul, 10000)
+      const e = ceilDiv(milli * hundredths(gr.essence) * mul, 10000)
+      out.essence += e
+      out.items[it.key]!.essence = e
     }
     apply(p.modifiers, r, it.parameter)
   }
   for (const dv of res.devices ?? []) {
     if (dv.kind === 'commlink') {
-      out.nuyen += price(g.commlinks.get(dv.id)?.cost, 1)
-      for (const o of dv.options ?? []) out.nuyen += price(g.linkOptions.get(o)?.cost, 1)
+      spend(dv.key, price(g.commlinks.get(dv.id)?.cost, 1))
+      for (const o of dv.options ?? []) spend(dv.key, price(g.linkOptions.get(o)?.cost, 1))
     } else if (dv.kind === 'cyberdeck') {
-      out.nuyen += price(g.cyberdecks.get(dv.id)?.cost, 1)
-      for (const pr of dv.programs ?? []) out.nuyen += price(g.programs.get(pr)?.cost, 1)
+      spend(dv.key, price(g.cyberdecks.get(dv.id)?.cost, 1))
+      for (const pr of dv.programs ?? []) spend(dv.key, price(g.programs.get(pr)?.cost, 1))
       if (out.deckDP === undefined && dv.array) out.deckDP = dv.array.dataProcessing ?? 0
     }
   }
-  for (const v of res.vehicles ?? []) out.nuyen += price(g.vehicles.get(v.id)?.cost, 1)
-  for (const o of res.other ?? []) out.nuyen += (o.cost ?? 0) * (o.quantity ?? 1)
+  for (const v of res.vehicles ?? []) spend(v.key, price(g.vehicles.get(v.id)?.cost, 1))
+  for (const o of res.other ?? []) spend(o.key, (o.cost ?? 0) * (o.quantity ?? 1))
   for (const pw of d.magic?.powers ?? []) {
     apply(l.powers.get(pw.id)?.modifiers, pw.rating ?? 1, pw.parameter)
   }
