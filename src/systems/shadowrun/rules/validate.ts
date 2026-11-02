@@ -1,5 +1,6 @@
 import type { Violation } from '@/core/rules/system'
 import type { Lookup } from './lookup'
+import { aspects, type MagicData, mentorAdvantages } from './magic'
 import { optionKarma, qualityCost } from './qualities'
 
 // data já conferido pelo Lenient.
@@ -28,6 +29,7 @@ export interface Sheet {
   metatype?: string
   attributes?: Record<string, Buy>
   qualities?: QualityItem[]
+  magic?: MagicData
   skills?: {
     active?: Record<string, SkillBuy>
     groups?: Record<string, Buy>
@@ -64,6 +66,8 @@ export function stepOf(path: string): string {
   if ((path.startsWith('attributes.') || path.startsWith('skills.')) && path.endsWith('.karma')) {
     return 'karma'
   }
+  if (/^magic\.(spirits|sprites|powerPointsKarma)/.test(path)) return 'karma'
+  if (path.startsWith('magic')) return 'magic'
   if (path.startsWith('qualities')) return 'qualities'
   if (path.startsWith('skills')) return 'skills'
   if (
@@ -200,6 +204,88 @@ function lenientQualities(path: string, v: unknown, vs: Violation[], keys: Set<s
   })
 }
 
+function idList(path: string, v: unknown, vs: Violation[], catalog: string, known: string[]) {
+  if (!Array.isArray(v)) {
+    vs.push(shape(path, 'array'))
+    return
+  }
+  for (const x of v) {
+    if (typeof x !== 'string') vs.push(shape(path, 'string'))
+    else if (!known.includes(x)) vs.push(unknownId(path, catalog, x))
+  }
+}
+
+function lenientMagic(path: string, v: unknown, vs: Violation[], keys: Set<string>, l: Lookup) {
+  const ids = (name: string) => l.magicIds.get(name) ?? []
+  object(path, v, vs, (p, key, v) => {
+    switch (key) {
+      case 'awakening':
+        if (typeof v !== 'string') vs.push(shape(p, 'string'))
+        else if (!l.awakenings.has(v)) vs.push(unknownId(p, 'awakenings', v))
+        return true
+      case 'tradition':
+        if (typeof v !== 'string') vs.push(shape(p, 'string'))
+        else if (!ids('traditions').includes(v)) vs.push(unknownId(p, 'traditions', v))
+        return true
+      case 'aspect':
+      case 'mentorAdvantage':
+        if (!(key === 'aspect' ? aspects : mentorAdvantages).includes(v as string))
+          vs.push(shape(p, key))
+        return true
+      case 'freeSkills':
+        idList(p, v, vs, 'skills', [...l.skills.keys()])
+        return true
+      case 'freeSkillGroups':
+        idList(p, v, vs, 'skillGroups', [...l.groups.keys()])
+        return true
+      case 'complexForms':
+        idList(p, v, vs, 'complexForms', ids('complexForms'))
+        return true
+      case 'formulas':
+        object(p, v, vs, (p, group, v) => {
+          if (group !== 'spells' && group !== 'rituals' && group !== 'preparations') return false
+          idList(p, v, vs, group, ids(group))
+          return true
+        })
+        return true
+      case 'powerPointsKarma':
+        expectInteger(p, v, vs)
+        return true
+      case 'powers':
+        list(p, v, vs, keys, (path, m) =>
+          object(path, m, vs, (p, key, v) => {
+            if (key === 'key' || key === 'parameter') expectString(p, v, vs)
+            else if (key === 'id') {
+              if (typeof v !== 'string') vs.push(shape(p, 'string'))
+              else if (!l.powers.has(v)) vs.push(unknownId(p, 'adeptPowers', v))
+            } else if (key === 'rating') expectInteger(p, v, vs)
+            else return false
+            return true
+          }),
+        )
+        return true
+      case 'spirits':
+      case 'sprites': {
+        const catalog = key === 'spirits' ? 'spiritTypes' : 'spriteTypes'
+        const count = key === 'spirits' ? 'services' : 'tasks'
+        list(p, v, vs, keys, (path, m) =>
+          object(path, m, vs, (p, key, v) => {
+            if (key === 'key') expectString(p, v, vs)
+            else if (key === 'type') {
+              if (typeof v !== 'string') vs.push(shape(p, 'string'))
+              else if (!ids(catalog).includes(v)) vs.push(unknownId(p, catalog, v))
+            } else if (key === count) expectInteger(p, v, vs)
+            else return false
+            return true
+          }),
+        )
+        return true
+      }
+    }
+    return false
+  })
+}
+
 // Pontos, carma e especialização, comuns a todo tipo de perícia.
 function skillField(p: string, key: string, v: unknown, vs: Violation[]): boolean {
   switch (key) {
@@ -275,6 +361,9 @@ export function lenient(data: unknown, l: Lookup): Violation[] {
   const keys = new Set<string>()
   object('', data, vs, (path, key, v) => {
     switch (key) {
+      case 'magic':
+        lenientMagic(path, v, vs, keys, l)
+        return true
       case 'qualities':
         lenientQualities(path, v, vs, keys, l)
         return true

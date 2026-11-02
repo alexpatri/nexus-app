@@ -9,11 +9,27 @@ export interface Metatype {
   sprintPerHit: number
 }
 
+export interface FreeSkillRule {
+  count: number
+  rating: number
+  from: { attribute?: string; groups?: string[]; kind?: string }
+}
+
+// O que uma letra da coluna Magia ou Ressonância dá a um despertar.
+export interface MagicEntry {
+  awakening: string
+  attribute: { id: string; value: number }
+  skills?: FreeSkillRule
+  skillGroups?: FreeSkillRule
+  formulas?: number
+  complexForms?: number
+}
+
 export interface PriorityRow {
   priority: string
   metatype: { metatype: string; specialPoints: number }[]
   attributes: number
-  magic: { awakening: string; attribute: { id: string; value: number } }[]
+  magic: MagicEntry[]
   skills: { points: number; groupPoints: number }
   resources: number
 }
@@ -25,7 +41,15 @@ interface Initiative {
 
 export interface Mechanics {
   derived: {
-    initiative: { physical: Initiative; matrixAR: Initiative; maxDice: number }
+    initiative: {
+      physical: Initiative
+      astral: Initiative
+      matrixAR: Initiative
+      matrixVRCold: Initiative
+      matrixVRHot: Initiative
+      maxDice: number
+    }
+    livingPersona: { dataProcessing: unknown }
     limits: Record<'physical' | 'mental' | 'social', { value: unknown }>
     monitors: Record<'physical' | 'stun' | 'overflow', { boxes: unknown }>
     attributeTests: Record<
@@ -45,6 +69,14 @@ export interface Mechanics {
     qualities: { positiveMax: number; negativeMax: number }
     skills: { knowledgePoints: unknown; maxRating: number; specializationCost: number }
     contacts: { karma: unknown }
+    specialAttributeMax: Record<string, number>
+    purchases: {
+      spell: { karma: number; max: unknown }
+      complexForm: { karma: number; max: unknown }
+      powerPoint: { karma: number }
+      boundSpiritService: { karma: number }
+      registeredSpriteTask: { karma: number }
+    }
   }
   progression: {
     costs: Record<
@@ -92,8 +124,18 @@ export interface Skill {
   id: string
   attribute: string
   group: string | null
+  category: string
   restricted: boolean
 }
+
+export interface AdeptPower {
+  id: string
+  powerPoints: number | { perLevel: number } | { byLevel: number[] } | { each: number }
+  parameter?: { kind: string; options?: string[]; categories?: string[]; except?: string[] }
+  levels?: { max: number }
+}
+
+type Ids = { id: string }[]
 
 export interface SkillsCatalog {
   skills: Skill[]
@@ -109,5 +151,9 @@ export interface Catalogs {
   qualities: { qualities: Quality[] }
   skills: SkillsCatalog
   mentors: { mentors: { id: string }[] }
-  traditions: { spiritTypes: { id: string }[] }
+  traditions: { spiritTypes: Ids; traditions: Ids }
+  awakening: { awakenings: { id: string; name: string; attribute: string }[] }
+  'adept-powers': { powers: AdeptPower[] }
+  'complex-forms': { complexForms: Ids; spriteTypes: Ids }
+  spells: { spells: Ids; rituals: Ids }
 }

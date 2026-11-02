@@ -18,6 +18,9 @@ async function rules(loader: CatalogLoader) {
     'skills',
     'mentors',
     'traditions',
+    'adept-powers',
+    'complex-forms',
+    'spells',
   ]
   const loaded = await Promise.all(names.map((name) => loader.catalog('shadowrun', '5e', name)))
   // A mesa pode ficar sem conexão: o resto do sistema baixa em segundo plano.
