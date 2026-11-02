@@ -11,6 +11,8 @@ import { shadowrunBrand } from './shadowrun/brand'
 export interface SystemWorld {
   theme: Theme
   Creation: Component<{ open: OpenSheet; rules: RulesSystem; step?: string }>
+  // Ficha pronta, sem passo na rota; editar volta para os passos da criação.
+  Sheet: Component<{ open: OpenSheet; rules: RulesSystem }>
   rules: (loader: CatalogLoader) => Promise<RulesSystem>
 }
 

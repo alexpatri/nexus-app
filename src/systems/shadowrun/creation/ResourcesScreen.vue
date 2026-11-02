@@ -12,6 +12,7 @@ import PickerSheet, { type PickerItem } from '../ui/PickerSheet.vue'
 import { nameOf, useCatalogs } from './catalogs'
 import type { Edit } from './edit'
 import { useFooter } from './footer'
+import { clone } from './edit'
 import { newKey } from './keys'
 import {
   augCategories,
@@ -79,7 +80,7 @@ const general = computed(() =>
 function change<T extends Item>(list: ListName, key: string, update: (it: T) => void) {
   props.edit((data) => {
     const r = { ...((data.resources as ResourcesData | undefined) ?? {}) }
-    const items = structuredClone((r[list] ?? []) as T[])
+    const items = clone((r[list] ?? []) as T[])
     update(items.find((x) => x.key === key)!)
     Object.assign(r, { [list]: items })
     data.resources = r

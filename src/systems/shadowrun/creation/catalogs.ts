@@ -35,6 +35,7 @@ export interface UiCatalogs {
   knowledgeCategories: (Named & { attribute: string })[]
   mentors: Named[]
   spiritTypes: Named[]
+  spriteTypes: Named[]
   traditions: Named[]
   spells: (Named & { category: string; desc?: string })[]
   rituals: (Named & { desc?: string })[]
@@ -79,6 +80,7 @@ export function buildUiCatalogs(c: RawCatalogs): UiCatalogs {
     knowledgeCategories: c.skills.knowledge.categories as UiCatalogs['knowledgeCategories'],
     mentors: c.mentors.mentors as Named[],
     spiritTypes: c.traditions.spiritTypes as Named[],
+    spriteTypes: c['complex-forms'].spriteTypes as Named[],
     traditions: c.traditions.traditions as Named[],
     spells: c.spells.spells as UiCatalogs['spells'],
     rituals: c.spells.rituals as UiCatalogs['rituals'],

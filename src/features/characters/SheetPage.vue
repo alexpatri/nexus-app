@@ -19,6 +19,9 @@ const world = shallowRef<SystemWorld>()
 const rules = shallowRef<RulesSystem>()
 const error = ref('')
 const ready = computed(() => open.value && world.value && rules.value)
+const view = computed(() =>
+  open.value?.sheet.status === 'ready' && !props.step ? world.value?.Sheet : world.value?.Creation,
+)
 
 async function load() {
   open.value = await openSheet(props.id)
@@ -51,13 +54,7 @@ onIonViewWillLeave(() => {
 
 <template>
   <IonPage>
-    <component
-      :is="world!.Creation"
-      v-if="ready && !error"
-      :open="open!"
-      :rules="rules!"
-      :step="step"
-    />
+    <component :is="view" v-if="ready && !error" :open="open!" :rules="rules!" :step="step" />
     <template v-else>
       <NxBar back="/" back-label="Voltar para personagens" />
       <IonContent>

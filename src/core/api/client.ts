@@ -89,7 +89,8 @@ export function createClient(opts: ClientOptions) {
 
   return {
     get: <T>(path: string) => request<T>('GET', path),
-    post: <T>(path: string, body?: unknown) => request<T>('POST', path, { body }),
+    post: <T>(path: string, body?: unknown, ifMatch?: number) =>
+      request<T>('POST', path, { body, ifMatch }),
     put: <T>(path: string, body: unknown, ifMatch?: number) =>
       request<T>('PUT', path, { body, ifMatch }),
     patch: <T>(path: string, body: unknown) => request<T>('PATCH', path, { body }),

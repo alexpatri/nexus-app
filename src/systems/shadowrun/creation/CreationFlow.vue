@@ -9,12 +9,14 @@ import NxButton from '@/core/ui/NxButton.vue'
 import type { Derived } from '../rules'
 import AttributesScreen from './AttributesScreen.vue'
 import ConceptStep from './ConceptStep.vue'
+import FinalScreen from './FinalScreen.vue'
+import FinishingScreen from './FinishingScreen.vue'
 import type { Edit } from './edit'
 import { provideFooter } from './footer'
 import MagicScreen from './MagicScreen.vue'
 import MetatypeScreen from './MetatypeScreen.vue'
-import PendingStep from './PendingStep.vue'
 import PrioritiesScreen from './PrioritiesScreen.vue'
+import KarmaScreen from './KarmaScreen.vue'
 import QualitiesScreen from './QualitiesScreen.vue'
 import ResourcesScreen from './ResourcesScreen.vue'
 import SkillsScreen from './SkillsScreen.vue'
@@ -42,9 +44,8 @@ const derived = computed(() => {
     return undefined
   }
 })
-const violations = computed(() =>
-  props.rules.validate(props.open.data, 'strict').filter((v) => v.step === current.value.step),
-)
+const all = computed(() => props.rules.validate(props.open.data, 'strict'))
+const violations = computed(() => all.value.filter((v) => v.step === current.value.step))
 
 const rejected = ref(false)
 
@@ -150,7 +151,31 @@ function reload() {
         :derived="derived"
         :violations="violations"
       />
-      <PendingStep v-else />
+      <KarmaScreen
+        v-else-if="current.id === 'karma'"
+        :data="open.data"
+        :edit="edit"
+        :derived="derived"
+        :violations="violations"
+      />
+      <FinalScreen
+        v-else-if="current.id === 'final-calculations'"
+        :data="open.data"
+        :edit="edit"
+        :derived="derived"
+        :violations="violations"
+        :base="base"
+      />
+      <FinishingScreen
+        v-else-if="current.id === 'finishing'"
+        :data="open.data"
+        :edit="edit"
+        :derived="derived"
+        :violations="violations"
+        :all="all"
+        :base="base"
+        :finalize="open.finalize"
+      />
     </main>
   </IonContent>
 

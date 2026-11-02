@@ -7,6 +7,7 @@ import type { Catalogs } from './catalogs'
 import { lookup } from './lookup'
 import { hasAstralPerception, magicCosts, specialBase, strictMagic } from './magic'
 import { type Effects, qualityEffects, strictQualities } from './qualities'
+import { strictContacts } from './contacts'
 import { gearCalc, type GearOut, startingLifestyle, strictResources } from './resources'
 import { deriveSkills, skillCosts, type SkillsOut, strictSkills } from './skills'
 import { baseAttrs, columns, lenient, type Sheet, specialAttrs, violation } from './validate'
@@ -63,6 +64,8 @@ export const codes = [
   'resources.lifestyleNotAllowed',
   'resources.startingRollOutOfRange',
   'essence.depleted',
+  'contacts.costOutOfRange',
+  'contacts.ratingOutOfRange',
 ]
 
 export interface Budget {
@@ -271,7 +274,10 @@ export function createShadowrun(catalogs: Catalogs): RulesSystem {
         total: evalInt(mech.creation.skills.knowledgePoints, e),
         spent: sk.knowledge,
       }
-      c.budgets.contacts = { total: evalInt(mech.creation.contacts.karma, e), spent: 0 }
+      c.budgets.contacts = {
+        total: evalInt(mech.creation.contacts.karma, e),
+        spent: (d.contacts ?? []).reduce((s, x) => s + (x.connection ?? 1) + (x.loyalty ?? 1), 0),
+      }
     }
 
     // Carma sobe degrau a degrau a partir do valor com os pontos. Sem metatipo,
@@ -294,6 +300,8 @@ export function createShadowrun(catalogs: Catalogs): RulesSystem {
         spent += evalInt(mech.progression.costs.attribute, { rating: r })
       }
     }
+    const ct = c.budgets.contacts
+    if (ct) spent += Math.max(0, ct.spent - ct.total)
     if (priced) c.budgets.karma = { total: mech.creation.karma + fx.negative, spent }
     return c
   }
@@ -369,11 +377,12 @@ export function createShadowrun(catalogs: Catalogs): RulesSystem {
       ...strictQualities(l, d, c.natural),
       ...strictSkills(l, mech, d, c.effects),
       ...strictResources(l, mech, d, c.essence),
+      ...strictContacts(mech, d),
     )
 
     for (const id of Object.keys(c.budgets).sort()) {
-      // Fórmulas e formas além das gratuitas são compradas com carma.
-      if (id === 'formulas' || id === 'complexForms') continue
+      // Fórmulas, formas e contatos além dos gratuitos são comprados com carma.
+      if (id === 'formulas' || id === 'complexForms' || id === 'contacts') continue
       const b = c.budgets[id]!
       if (b.spent > b.total) {
         vs.push(

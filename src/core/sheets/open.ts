@@ -1,6 +1,6 @@
 import { reactive } from 'vue'
 
-import { getSheet, putSheet, type Sheet } from '@/core/api/characters'
+import { finalizeSheet, getSheet, putSheet, type Sheet } from '@/core/api/characters'
 import { type Autosave, createAutosave } from './autosave'
 
 export interface OpenSheet {
@@ -11,6 +11,8 @@ export interface OpenSheet {
   changed: () => void
   // Volta data a um estado anterior, sem salvar: desfaz uma mudança recusada.
   restore: (data: Record<string, unknown>) => void
+  // Salva o que falta e pede ao core para fechar o rascunho.
+  finalize: () => Promise<void>
 }
 
 // A mesma ficha aberta em várias telas (um passo por página do Ionic) é um
@@ -33,6 +35,12 @@ function track(sheet: Sheet): OpenSheet {
     changed: () => autosave.schedule(JSON.parse(JSON.stringify(entry.data))),
     restore: (data: Record<string, unknown>) => {
       entry.data = data
+    },
+    finalize: async () => {
+      await autosave.flush()
+      const saved = await finalizeSheet(sheet.id, autosave.state.revision)
+      entry.sheet = saved
+      autosave.state.revision = saved.revision
     },
   }) as OpenSheet
   open.set(sheet.id, entry)

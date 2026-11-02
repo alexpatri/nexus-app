@@ -52,6 +52,11 @@ export async function getSheet(id: string) {
   return (await core.get<Sheet>(`/sheets/${id}`)).data
 }
 
+// Strict no core: 422 com as violações se a ficha ainda não fecha.
+export async function finalizeSheet(id: string, revision: number) {
+  return (await core.post<Sheet>(`/sheets/${id}/finalize`, undefined, revision)).data
+}
+
 // If-Match com a revisão que o app tem: 409 se outra escrita chegou antes.
 export async function putSheet(id: string, data: unknown, revision: number) {
   return (await core.put<Sheet>(`/sheets/${id}`, { data }, revision)).data
