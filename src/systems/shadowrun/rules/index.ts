@@ -5,6 +5,7 @@ import { type Env, evaluate } from '@/core/rules/expr'
 import type { RulesSystem, Summary, Violation } from '@/core/rules/system'
 import type { Catalogs } from './catalogs'
 import { lookup } from './lookup'
+import { hasAstralPerception, magicCosts, specialBase, strictMagic } from './magic'
 import { type Effects, qualityEffects, strictQualities } from './qualities'
 import { deriveSkills, skillCosts, type SkillsOut, strictSkills } from './skills'
 import { baseAttrs, columns, lenient, type Sheet, specialAttrs, violation } from './validate'
@@ -32,6 +33,16 @@ export const codes = [
   'skills.groupConflict',
   'skills.specializationNotAllowed',
   'skills.nativeLanguageCount',
+  'magic.notAtPriority',
+  'magic.notAllowed',
+  'magic.freeSkillsCount',
+  'magic.freeSkillNotAllowed',
+  'magic.formulasMax',
+  'magic.complexFormsMax',
+  'magic.powerLevelMax',
+  'magic.parameterRequired',
+  'magic.parameterNotAllowed',
+  'magic.spiritsMax',
 ]
 
 export interface Budget {
@@ -170,6 +181,10 @@ export function createShadowrun(catalogs: Catalogs): RulesSystem {
       for (const a of withEdge) c.natural[a] = (m.attributes[a]?.min ?? 0) + points(a) + karma(a)
       c.essence = m.attributes.ess?.start ?? 0
     }
+    for (const a of ['mag', 'res']) {
+      const base = specialBase(l, d, a)
+      if (base !== undefined) c.natural[a] = base + points(a) + karma(a)
+    }
 
     const metaRow = priorities.get(prio.metatype ?? '')
     for (const opt of metaRow?.metatype ?? []) {
@@ -206,12 +221,14 @@ export function createShadowrun(catalogs: Catalogs): RulesSystem {
 
     // Carma sobe degrau a degrau a partir do valor com os pontos. Sem metatipo,
     // o degrau inicial dos atributos comuns é desconhecido e o orçamento some.
-    let spent = fx.positive + sk.karma
+    let spent = fx.positive + sk.karma + magicCosts(l, mech, d, c.natural, c.budgets)
     let priced = true
     for (const a of [...baseAttrs, ...specialAttrs]) {
       if (karma(a) === 0) continue
       let from = points(a)
-      if (a !== 'mag' && a !== 'res') {
+      const base = specialBase(l, d, a)
+      if (base !== undefined) from += base
+      else if (a !== 'mag' && a !== 'res') {
         if (!m) {
           priced = false
           break
@@ -265,9 +282,16 @@ export function createShadowrun(catalogs: Catalogs): RulesSystem {
 
     for (const a of ['mag', 'res']) {
       const b = d.attributes?.[a]
-      if ((b?.points ?? 0) + (b?.karma ?? 0) > 0) {
-        vs.push(violation(layer(a, d), 'attributes.notAllowed', { attribute: a }))
+      if (specialBase(l, d, a) === undefined) {
+        if ((b?.points ?? 0) + (b?.karma ?? 0) > 0) {
+          vs.push(violation(layer(a, d), 'attributes.notAllowed', { attribute: a }))
+        }
+        continue
       }
+      const max = (mech.creation.specialAttributeMax[a] ?? 0) + (c.effects.attrMax[a] ?? 0)
+      const value = c.natural[a] ?? 0
+      if (value > max)
+        vs.push(violation(layer(a, d), 'attributes.aboveMax', { attribute: a, value, max }))
     }
     const m = d.metatype ? metatypes.get(d.metatype) : undefined
     if (m) {
@@ -287,9 +311,15 @@ export function createShadowrun(catalogs: Catalogs): RulesSystem {
       }
     }
 
-    vs.push(...strictQualities(l, d, c.natural), ...strictSkills(l, mech, d, c.effects))
+    vs.push(
+      ...strictMagic(l, mech, d, c.natural, env(c)),
+      ...strictQualities(l, d, c.natural),
+      ...strictSkills(l, mech, d, c.effects),
+    )
 
     for (const id of Object.keys(c.budgets).sort()) {
+      // Fórmulas e formas além das gratuitas são compradas com carma.
+      if (id === 'formulas' || id === 'complexForms') continue
       const b = c.budgets[id]!
       if (b.spent > b.total) {
         vs.push(
@@ -343,6 +373,24 @@ export function createShadowrun(catalogs: Catalogs): RulesSystem {
     out.initiative = {
       physical: { base: ev(md.initiative.physical.base), dice: dice(md.initiative.physical.dice) },
       matrixAR: { base: ev(md.initiative.matrixAR.base), dice: dice(md.initiative.matrixAR.dice) },
+    }
+    if (hasAstralPerception(d)) {
+      out.initiative.astral = {
+        base: ev(md.initiative.astral.base),
+        dice: dice(md.initiative.astral.dice),
+      }
+    }
+    // O tecnomante entra em RV com a persona viva, sem aparelho.
+    if (d.magic?.awakening === 'technomancer') {
+      e['matrix.dataProcessing'] = ev(md.livingPersona.dataProcessing)
+      out.initiative.matrixVRCold = {
+        base: ev(md.initiative.matrixVRCold.base),
+        dice: dice(md.initiative.matrixVRCold.dice),
+      }
+      out.initiative.matrixVRHot = {
+        base: ev(md.initiative.matrixVRHot.base),
+        dice: dice(md.initiative.matrixVRHot.dice),
+      }
     }
     out.monitors = {
       physical: ev(md.monitors.physical.boxes),

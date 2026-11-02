@@ -21,6 +21,9 @@ const names = [
   'skills',
   'mentors',
   'traditions',
+  'adept-powers',
+  'complex-forms',
+  'spells',
 ]
 
 export function shadowrunCatalogs(): RawCatalogs {

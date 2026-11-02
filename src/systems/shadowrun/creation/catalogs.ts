@@ -26,7 +26,6 @@ export interface UiCatalogs {
 
 export interface RawCatalogs extends Catalogs {
   attributes: { attributes: UiCatalogs['attributes'] }
-  awakening: { awakenings: Named[] }
 }
 
 export function buildUiCatalogs(c: RawCatalogs): UiCatalogs {

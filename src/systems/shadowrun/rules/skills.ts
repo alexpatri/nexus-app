@@ -2,6 +2,7 @@ import { evaluate } from '@/core/rules/expr'
 import type { Violation } from '@/core/rules/system'
 import type { Mechanics } from './catalogs'
 import type { Lookup } from './lookup'
+import { freeRatings, restrictedAllowed } from './magic'
 import type { Effects } from './qualities'
 import { type Sheet, type SkillBuy, violation } from './validate'
 
@@ -24,9 +25,9 @@ function groupRating(l: Lookup, d: Sheet, id: string): number {
   return (g?.points ?? 0) + (g?.karma ?? 0)
 }
 
-// Nível de cada perícia ativa: grupo comprado + pontos + carma.
+// Nível de cada perícia ativa: dado pela prioridade + grupo comprado + pontos + carma.
 export function activeRatings(l: Lookup, d: Sheet): Record<string, number> {
-  const r: Record<string, number> = {}
+  const r = freeRatings(l, d)
   for (const [g, b] of Object.entries(d.skills?.groups ?? {})) {
     for (const id of l.groups.get(g) ?? []) r[id] = (r[id] ?? 0) + (b.points ?? 0) + (b.karma ?? 0)
   }
@@ -49,6 +50,7 @@ export function skillCosts(l: Lookup, mech: Mechanics, d: Sheet) {
     for (let r = from + 1; r <= from + n; r++) total += Math.trunc(evaluate(f, { rating: r }))
     return total
   }
+  const free = freeRatings(l, d)
   const spec = (b: SkillBuy) => paid(b, 'karma') * Math.trunc(evaluate(costs.specialization, {}))
   let points = 0
   let groups = 0
@@ -57,7 +59,11 @@ export function skillCosts(l: Lookup, mech: Mechanics, d: Sheet) {
   for (const [id, b] of Object.entries(d.skills?.active ?? {})) {
     points += (b.points ?? 0) + paid(b, 'points') * specCost
     karma +=
-      steps(costs.activeSkill, groupRating(l, d, id) + (b.points ?? 0), b.karma ?? 0) + spec(b)
+      steps(
+        costs.activeSkill,
+        (free[id] ?? 0) + groupRating(l, d, id) + (b.points ?? 0),
+        b.karma ?? 0,
+      ) + spec(b)
   }
   for (const b of Object.values(d.skills?.groups ?? {})) {
     groups += b.points ?? 0
@@ -132,8 +138,7 @@ export function strictSkills(l: Lookup, mech: Mechanics, d: Sheet, fx: Effects):
         }),
       )
     }
-    // Sem despertar (fatia 4.3), toda perícia mágica ou de ressonância é restrita.
-    if (l.skills.get(id)?.restricted) {
+    if (l.skills.get(id)?.restricted && !restrictedAllowed(l, d, id)) {
       vs.push(violation(`skills.active.${id}`, 'skills.restricted', { skill: id }))
     }
   }
