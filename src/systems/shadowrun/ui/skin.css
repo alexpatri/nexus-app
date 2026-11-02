@@ -58,8 +58,9 @@
 :root[data-system='shadowrun'] ion-header h1 {
   font-family: var(--font-display);
   font-weight: 400;
-  font-size: 0.9375rem;
-  letter-spacing: 0.1em;
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--sr-on-dark);
 }
@@ -117,4 +118,53 @@
 
 :root[data-system='shadowrun'] .sr-outline:disabled > span {
   color: #9a9b97;
+}
+
+/* Título de seção vira a aba carmim da ficha do livro. */
+:root[data-system='shadowrun'] main.content h2 {
+  align-self: flex-start;
+  width: fit-content;
+  margin: 0;
+  padding: 7px 30px 7px 12px;
+  background: var(--sr-carmine);
+  color: var(--sr-on-dark);
+  font-family: var(--font-display);
+  font-size: 0.6875rem;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  line-height: 1.4;
+  text-transform: uppercase;
+  clip-path: var(--sr-tab);
+}
+
+/* Nomes de item na fonte de dados, como as tabelas do livro. */
+:root[data-system='shadowrun'] main.content .name {
+  font-family: var(--font-numeric);
+  font-size: 1.1875rem;
+  font-weight: 600;
+}
+
+/* Marcador de escolha única: hexágono, como os pontos de Trunfo da ficha. */
+:root[data-system='shadowrun'] .ring {
+  width: 20px;
+  height: 23px;
+  border: 0;
+  border-radius: 0;
+  background: var(--color-border);
+  clip-path: var(--sr-hex);
+}
+
+:root[data-system='shadowrun'] .ring span {
+  width: 14px;
+  height: 17px;
+  border-radius: 0;
+  background: var(--color-surface-raised);
+  clip-path: var(--sr-hex);
+}
+
+:root[data-system='shadowrun'] [aria-checked='true'] .ring,
+:root[data-system='shadowrun'] .on .ring,
+:root[data-system='shadowrun'] [aria-checked='true'] .ring span,
+:root[data-system='shadowrun'] .on .ring span {
+  background: var(--sr-carmine);
 }

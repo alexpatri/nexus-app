@@ -107,7 +107,8 @@ function reload() {
   <NxBar :back="back" :back-label="index === 0 ? 'Sair da criação' : 'Voltar'">
     <div class="heading">
       <h1>
-        <span aria-hidden="true">» </span>{{ current.title }}<span aria-hidden="true"> «</span>
+        <span aria-hidden="true">»&nbsp;</span>{{ current.title
+        }}<span aria-hidden="true">&nbsp;«</span>
       </h1>
       <span class="count numeric">Passo {{ number }} de {{ stepIds.length }}</span>
     </div>

@@ -183,7 +183,9 @@ const magic = computed(() => {
 <template>
   <NxBar back="/" back-label="Voltar para personagens">
     <div class="heading">
-      <h1><span aria-hidden="true">» </span>Ficha-base<span aria-hidden="true"> «</span></h1>
+      <h1>
+        <span aria-hidden="true">»&nbsp;</span>Ficha-base<span aria-hidden="true">&nbsp;«</span>
+      </h1>
       <RouterLink class="edit" :to="`${base}/concept`">Editar</RouterLink>
     </div>
   </NxBar>
