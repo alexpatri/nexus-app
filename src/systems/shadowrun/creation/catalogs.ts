@@ -1,6 +1,6 @@
 import { shallowRef } from 'vue'
 
-import type { Catalogs, Metatype, PriorityRow, Quality, Skill } from '../rules/catalogs'
+import type { AdeptPower, Catalogs, Metatype, PriorityRow, Quality, Skill } from '../rules/catalogs'
 import { type Lookup, lookup } from '../rules/lookup'
 
 type Named = { id: string; name: string }
@@ -19,6 +19,11 @@ export interface UiCatalogs {
   knowledgeCategories: (Named & { attribute: string })[]
   mentors: Named[]
   spiritTypes: Named[]
+  traditions: Named[]
+  spells: (Named & { category: string; desc?: string })[]
+  rituals: (Named & { desc?: string })[]
+  complexForms: (Named & { desc?: string })[]
+  adeptPowers: (AdeptPower & { name: string; desc?: string })[]
   // Nível máximo de perícia na criação (mechanics.json#creation.skills.maxRating).
   skillMaxRating: number
   lookup: Lookup
@@ -41,6 +46,11 @@ export function buildUiCatalogs(c: RawCatalogs): UiCatalogs {
     knowledgeCategories: c.skills.knowledge.categories as UiCatalogs['knowledgeCategories'],
     mentors: c.mentors.mentors as Named[],
     spiritTypes: c.traditions.spiritTypes as Named[],
+    traditions: c.traditions.traditions as Named[],
+    spells: c.spells.spells as UiCatalogs['spells'],
+    rituals: c.spells.rituals as UiCatalogs['rituals'],
+    complexForms: c['complex-forms'].complexForms as UiCatalogs['complexForms'],
+    adeptPowers: c['adept-powers'].powers as UiCatalogs['adeptPowers'],
     skillMaxRating: c.mechanics.creation.skills.maxRating,
     lookup: lookup(c),
   }

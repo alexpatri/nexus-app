@@ -3,14 +3,22 @@ import { computed } from 'vue'
 
 // Orçamento em caixas (frontend-design-shadowrun.md): gasto em tinta, livre em
 // caixa vazia; acima do total, as caixas a mais ficam em carmim.
-const props = defineProps<{ label: string; total: number; spent: number }>()
+// Com quarters, cada ponto vira quatro caixas agrupadas (pontos de poder).
+const props = defineProps<{ label: string; total: number; spent: number; quarters?: boolean }>()
 
+const per = computed(() => (props.quarters ? 4 : 1))
 const left = computed(() => props.total - props.spent)
-const boxes = computed(() =>
-  Array.from({ length: Math.max(props.total, props.spent) }, (_, i) =>
-    i >= props.total ? 'over' : i < props.spent ? 'spent' : 'free',
-  ),
-)
+const groups = computed(() => {
+  const total = Math.round(props.total * per.value)
+  const spent = Math.round(props.spent * per.value)
+  const cells = Array.from({ length: Math.max(total, spent) }, (_, i) =>
+    i >= total ? 'over' : i < spent ? 'spent' : 'free',
+  )
+  const out: string[][] = []
+  for (let i = 0; i < cells.length; i += per.value) out.push(cells.slice(i, i + per.value))
+  return out
+})
+const n = (x: number) => String(Math.abs(x)).replace('.', ',')
 </script>
 
 <template>
@@ -18,11 +26,13 @@ const boxes = computed(() =>
     <div class="head">
       <span class="label">{{ label }}</span>
       <span :class="['left', 'numeric', { over: left < 0 }]">
-        {{ left >= 0 ? `${left} de ${total} restantes` : `${-left} acima de ${total}` }}
+        {{ left >= 0 ? `${n(left)} de ${n(total)} restantes` : `${n(left)} acima de ${n(total)}` }}
       </span>
     </div>
-    <div class="boxes" aria-hidden="true">
-      <span v-for="(b, i) in boxes" :key="i" :class="b" />
+    <div :class="['boxes', { quarters }]" aria-hidden="true">
+      <span v-for="(g, i) in groups" :key="i" class="group">
+        <span v-for="(b, j) in g" :key="j" :class="b" />
+      </span>
     </div>
   </section>
 </template>
@@ -56,25 +66,30 @@ const boxes = computed(() =>
   color: var(--color-danger);
 }
 
-.boxes {
+.boxes,
+.group {
   display: flex;
   flex-wrap: wrap;
   gap: 2px;
 }
 
-.boxes span {
+.boxes.quarters {
+  gap: var(--space-2);
+}
+
+.group span {
   width: 12px;
   height: 12px;
   border: 1.5px solid var(--color-border);
   background: var(--color-surface-raised);
 }
 
-.boxes .spent {
+.group .spent {
   border-color: var(--sr-print);
   background: var(--sr-print);
 }
 
-.boxes .over {
+.group .over {
   border-color: var(--color-danger);
   background: var(--color-danger);
 }

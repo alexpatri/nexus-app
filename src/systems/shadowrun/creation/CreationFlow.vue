@@ -11,6 +11,7 @@ import AttributesScreen from './AttributesScreen.vue'
 import ConceptStep from './ConceptStep.vue'
 import type { Edit } from './edit'
 import { provideFooter } from './footer'
+import MagicScreen from './MagicScreen.vue'
 import MetatypeScreen from './MetatypeScreen.vue'
 import PendingStep from './PendingStep.vue'
 import PrioritiesScreen from './PrioritiesScreen.vue'
@@ -115,6 +116,13 @@ function reload() {
       <MetatypeScreen v-else-if="current.id === 'metatype'" :data="open.data" :edit="edit" />
       <AttributesScreen
         v-else-if="current.id === 'attributes'"
+        :data="open.data"
+        :edit="edit"
+        :derived="derived"
+        :violations="violations"
+      />
+      <MagicScreen
+        v-else-if="current.id === 'magic'"
         :data="open.data"
         :edit="edit"
         :derived="derived"

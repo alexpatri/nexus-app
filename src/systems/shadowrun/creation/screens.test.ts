@@ -8,6 +8,7 @@ import AttributesScreen from './AttributesScreen.vue'
 import { buildUiCatalogs, uiCatalogs } from './catalogs'
 import type { Edit } from './edit'
 import { provideFooter } from './footer'
+import MagicScreen from './MagicScreen.vue'
 import MetatypeScreen from './MetatypeScreen.vue'
 import PrioritiesScreen from './PrioritiesScreen.vue'
 import QualitiesScreen from './QualitiesScreen.vue'
@@ -325,5 +326,84 @@ describe('SkillsScreen', () => {
     const k = (s.data().skills as { knowledge: Record<string, unknown>[] }).knowledge
     expect(k).toHaveLength(1)
     expect(k[0]).toMatchObject({ name: 'Gangues de Seattle', category: 'street', points: 1 })
+  })
+})
+
+describe('MagicScreen', () => {
+  const ana = (magic: Record<string, unknown>, letter = 'A') => ({
+    identity: { name: 'Ana' },
+    priorities: { metatype: 'D', attributes: 'B', magic: letter, skills: 'C', resources: 'E' },
+    metatype: 'human',
+    magic,
+    skills: { languages: [{ key: 'l1', name: 'Inglês', native: true }] },
+  })
+
+  it('lista o que a letra dá e troca de despertar sem levar o que não vale', async () => {
+    const s = setup(
+      MagicScreen,
+      ana({ awakening: 'magician', tradition: 'hermetic' }, 'B'),
+      'magic',
+    )
+    const options = s.w.findAll('[role="radio"]').filter((o) => o.find('.detail').exists())
+    expect(options.map((o) => o.find('.name').text())).toEqual([
+      'Mago',
+      'Adepto Místico',
+      'Tecnomante',
+      'Adepto',
+      'Mago Aspectado',
+      'Mundano',
+    ])
+    expect(options[3]!.text()).toContain(
+      'Magia 6, uma perícia ativa no nível 4 e 6 pontos de poder.',
+    )
+
+    await options[3]!.trigger('click')
+    expect(s.data().magic).toEqual({ awakening: 'adept' })
+    await options[5]!.trigger('click')
+    expect(s.data()).not.toHaveProperty('magic')
+  })
+
+  it('escolhe a perícia dada só entre as de Magia', async () => {
+    const s = setup(MagicScreen, ana({ awakening: 'magician', tradition: 'hermetic' }), 'magic')
+    expect(s.w.text()).toContain('0 de 2, no nível 5')
+    button('Escolher perícia').click()
+    await s.w.vm.$nextTick()
+    const names = inBody('.item .name').map((n) => n.textContent)
+    expect(names).toContain('Conjuração')
+    expect(names).not.toContain('Pistolas')
+    inBody('.item')
+      .find((b) => b.querySelector('.name')?.textContent === 'Conjuração')!
+      .click()
+    await s.w.vm.$nextTick()
+    inBody('[role="dialog"] button')
+      .find((b) => b.textContent?.trim() === 'Adicionar')!
+      .click()
+    await s.w.vm.$nextTick()
+    expect((s.data().magic as { freeSkills: string[] }).freeSkills).toEqual(['spellcasting'])
+  })
+
+  it('mostra os poderes da Clara em quartos e o estouro do livro', () => {
+    const clara = readFixture('fixtures/shadowrun/5e/clara-magic.json') as {
+      data: Record<string, unknown>
+    }
+    const s = setup(MagicScreen, clara.data, 'magic')
+    expect(s.w.findAll('.group')).toHaveLength(3)
+    expect(s.w.findAll('.cost').map((x) => x.text())).toEqual(['0,25', '0,5', '0,5', '0,5', '0,5'])
+    expect(s.alert()).toBe('Os poderes passam dos pontos de poder em 0,25.')
+  })
+
+  it('compra pontos de poder do adepto místico até a Magia', async () => {
+    const s = setup(
+      MagicScreen,
+      ana({ awakening: 'mystic-adept', tradition: 'shamanic' }, 'C'),
+      'magic',
+    )
+    await s.w.find('[aria-label="Comprar mais um ponto de poder"]').trigger('click')
+    expect((s.data().magic as { powerPointsKarma: number }).powerPointsKarma).toBe(1)
+    await s.w.find('[aria-label="Comprar mais um ponto de poder"]').trigger('click')
+    await s.w.find('[aria-label="Comprar mais um ponto de poder"]').trigger('click')
+    expect(
+      s.w.find('[aria-label="Comprar mais um ponto de poder"]').attributes('disabled'),
+    ).toBeDefined()
   })
 })
