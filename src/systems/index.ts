@@ -40,6 +40,7 @@ export const modules: SystemModule[] = [
 export function splashOf(brand: Brand): Splash {
   return {
     art: brand.cardArt ?? brand.accent,
+    edge: brand.accent,
     ink: brand.ink,
     name: brand.name,
     edition: brand.edition,
