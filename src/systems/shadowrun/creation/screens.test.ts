@@ -8,6 +8,7 @@ import AttributesScreen from './AttributesScreen.vue'
 import { buildUiCatalogs, uiCatalogs } from './catalogs'
 import type { Edit } from './edit'
 import { provideFooter } from './footer'
+import KarmaScreen from './KarmaScreen.vue'
 import MagicScreen from './MagicScreen.vue'
 import MetatypeScreen from './MetatypeScreen.vue'
 import PrioritiesScreen from './PrioritiesScreen.vue'
@@ -464,6 +465,18 @@ describe('ResourcesScreen', () => {
     expect(note).toBe('Disponibilidade 18, acima de 12')
   })
 
+  it('muda os meses do estilo de vida e o preço acompanha', async () => {
+    const s = setup(ResourcesScreen, fixture('beto-resources'), 'resources')
+    row(s, 'Baixo').find('.row').trigger('click')
+    await s.w.vm.$nextTick()
+    button('Aumentar meses de Baixo').click()
+    await s.w.vm.$nextTick()
+    expect((s.data().resources as { lifestyles: { months: number }[] }).lifestyles[0]!.months).toBe(
+      4,
+    )
+    expect(row(s, 'Baixo').find('.price').text()).toBe('16.000 ¥')
+  })
+
   it('converte carma em nuyen até 10', async () => {
     const data = fixture('beto-resources')
     ;(data.resources as Record<string, unknown>).karmaToNuyen = 9
@@ -486,5 +499,67 @@ describe('ResourcesScreen', () => {
     expect(row(s, 'Ampliação de visão').find('.detail').text()).toContain(
       'em Sistema básico de ciber-olhos',
     )
+  })
+})
+
+describe('KarmaScreen', () => {
+  const fixture = (name: string) =>
+    structuredClone(
+      (readFixture(`fixtures/shadowrun/5e/${name}.json`) as { data: Record<string, unknown> }).data,
+    )
+  const line = (s: ReturnType<typeof setup>, name: string) =>
+    s.w
+      .findAll('li')
+      .find((li) => li.find('.name').exists() && li.find('.name').text().startsWith(name))!
+
+  it('mostra o custo do carma por perícia e o estouro do Beto', () => {
+    const s = setup(KarmaScreen, fixture('beto-final'), 'karma')
+    expect(line(s, 'Primeiros Socorros').text()).toContain('6 de carma')
+    expect(line(s, 'Percepção').find('.value').text()).toBe('2')
+    expect(s.alert()).toBe('O carma gasto passa do total em 1.')
+  })
+
+  it('compra Trunfo com carma', async () => {
+    const s = setup(KarmaScreen, fixture('clara-final'), 'karma')
+    button('Aumentar carma em Trunfo').click()
+    await s.w.vm.$nextTick()
+    expect((s.data().attributes as Record<string, { karma?: number }>).edg!.karma).toBe(1)
+    expect(s.status()).toMatch(/^Carma: -\d+ restantes$|^Carma: \d+ restantes/)
+  })
+
+  it('lista os espíritos da Clara e vincula outro até o Carisma', async () => {
+    const s = setup(KarmaScreen, fixture('clara-final'), 'karma')
+    expect(s.w.text()).toContain('Espíritos vinculados')
+    expect(s.w.findAll('select[id$="-type"]')).toHaveLength(2)
+    button('Vincular espírito').click()
+    await s.w.vm.$nextTick()
+    const spirits = (s.data().magic as { spirits: { services: number }[] }).spirits
+    expect(spirits).toHaveLength(3)
+    expect(spirits[2]!.services).toBe(1)
+  })
+
+  it('mostra os sprites do tecnomante', () => {
+    const s = setup(KarmaScreen, fixture('jefferson-final'), 'karma')
+    expect(s.w.text()).toContain('Sprites registrados')
+    expect(s.w.text()).toContain(
+      'Cada um dos tarefas custa 1 de carma'.replace('dos tarefas', 'dos tarefas'),
+    )
+  })
+
+  it('adiciona contato e trava o + quando chega a 7', async () => {
+    const s = setup(KarmaScreen, fixture('beto-final'), 'karma')
+    button('Adicionar contato').click()
+    await s.w.vm.$nextTick()
+    const added = (s.data().contacts as { key: string }[]).at(-1)!
+    for (let i = 0; i < 5; i++) {
+      button('Aumentar Conexão de contato').click()
+      await s.w.vm.$nextTick()
+    }
+    const ct = (s.data().contacts as { key: string; connection: number }[]).find(
+      (x) => x.key === added.key,
+    )!
+    expect(ct.connection).toBe(6)
+    expect(button('Aumentar Conexão de contato').hasAttribute('disabled')).toBe(true)
+    expect(button('Aumentar Lealdade de contato').hasAttribute('disabled')).toBe(true)
   })
 })

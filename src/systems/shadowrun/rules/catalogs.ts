@@ -67,6 +67,7 @@ export interface Mechanics {
   }
   creation: {
     karma: number
+    karmaCarryOver: number
     qualities: { positiveMax: number; negativeMax: number }
     skills: { knowledgePoints: unknown; maxRating: number; specializationCost: number }
     contacts: {

@@ -15,6 +15,7 @@ import MagicScreen from './MagicScreen.vue'
 import MetatypeScreen from './MetatypeScreen.vue'
 import PendingStep from './PendingStep.vue'
 import PrioritiesScreen from './PrioritiesScreen.vue'
+import KarmaScreen from './KarmaScreen.vue'
 import QualitiesScreen from './QualitiesScreen.vue'
 import ResourcesScreen from './ResourcesScreen.vue'
 import SkillsScreen from './SkillsScreen.vue'
@@ -145,6 +146,13 @@ function reload() {
       />
       <ResourcesScreen
         v-else-if="current.id === 'resources'"
+        :data="open.data"
+        :edit="edit"
+        :derived="derived"
+        :violations="violations"
+      />
+      <KarmaScreen
+        v-else-if="current.id === 'karma'"
         :data="open.data"
         :edit="edit"
         :derived="derived"
