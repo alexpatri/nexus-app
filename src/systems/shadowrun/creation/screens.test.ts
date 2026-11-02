@@ -1,40 +1,21 @@
 import { mount } from '@vue/test-utils'
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { computed, defineComponent, h, reactive } from 'vue'
 
-import type { Catalogs } from '../rules/catalogs'
+import { shadowrunCatalogs } from '../../../../test/shadowrun'
 import { createShadowrun, type Derived } from '../rules'
 import AttributesScreen from './AttributesScreen.vue'
-import { uiCatalogs } from './catalogs'
+import { buildUiCatalogs, uiCatalogs } from './catalogs'
 import type { Edit } from './edit'
 import { provideFooter } from './footer'
 import MetatypeScreen from './MetatypeScreen.vue'
 import PrioritiesScreen from './PrioritiesScreen.vue'
 
-const dir = join(process.cwd(), 'test/fixtures/data/systems/shadowrun/5e')
-const read = (name: string) => JSON.parse(readFileSync(join(dir, `${name}.json`), 'utf8'))
-const catalogs = {
-  system: read('system'),
-  metatypes: read('metatypes'),
-  priorities: read('priorities'),
-  mechanics: read('mechanics'),
-  qualities: read('qualities'),
-  skills: read('skills'),
-  mentors: read('mentors'),
-  traditions: read('traditions'),
-} as Catalogs
+const catalogs = shadowrunCatalogs()
 const rules = createShadowrun(catalogs)
 
 beforeAll(() => {
-  uiCatalogs.value = {
-    columns: catalogs.priorities.columns,
-    rows: catalogs.priorities.rows,
-    metatypes: catalogs.metatypes.metatypes,
-    attributes: read('attributes').attributes,
-    awakenings: read('awakening').awakenings,
-  }
+  uiCatalogs.value = buildUiCatalogs(catalogs)
 })
 
 // Monta a tela como o CreationFlow: data reativo, edit que aplica a mudança e

@@ -2,8 +2,7 @@ import type { CatalogLoader } from '@/core/catalog/loader'
 import type { SystemWorld } from '@/systems'
 import './creation/inks.css'
 import CreationFlow from './creation/CreationFlow.vue'
-import { type UiCatalogs, uiCatalogs } from './creation/catalogs'
-import type { Catalogs } from './rules/catalogs'
+import { buildUiCatalogs, type RawCatalogs, uiCatalogs } from './creation/catalogs'
 import { createShadowrun } from './rules'
 import { shadowrunTheme } from './theme'
 
@@ -20,37 +19,11 @@ async function rules(loader: CatalogLoader) {
     'mentors',
     'traditions',
   ]
-  const [
-    system,
-    metatypes,
-    priorities,
-    mechanics,
-    attributes,
-    awakening,
-    qualities,
-    skills,
-    mentors,
-    traditions,
-  ] = await Promise.all(names.map((name) => loader.catalog('shadowrun', '5e', name)))
+  const loaded = await Promise.all(names.map((name) => loader.catalog('shadowrun', '5e', name)))
   // A mesa pode ficar sem conexão: o resto do sistema baixa em segundo plano.
   void loader.preload('shadowrun', '5e').catch(() => {})
-  const c = {
-    system,
-    metatypes,
-    priorities,
-    mechanics,
-    qualities,
-    skills,
-    mentors,
-    traditions,
-  } as Catalogs
-  uiCatalogs.value = {
-    columns: c.priorities.columns,
-    rows: c.priorities.rows,
-    metatypes: c.metatypes.metatypes,
-    attributes: (attributes as { attributes: UiCatalogs['attributes'] }).attributes,
-    awakenings: (awakening as { awakenings: UiCatalogs['awakenings'] }).awakenings,
-  }
+  const c = Object.fromEntries(names.map((n, i) => [n, loaded[i]])) as unknown as RawCatalogs
+  uiCatalogs.value = buildUiCatalogs(c)
   return createShadowrun(c)
 }
 

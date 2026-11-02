@@ -1,34 +1,18 @@
 // @vitest-environment node
 
-import { readdirSync, readFileSync } from 'node:fs'
+import { readdirSync } from 'node:fs'
 import { join } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 
 import { check, type Fixture } from '@/core/rules/contract'
-import type { Catalogs } from './catalogs'
+import { fixturesRoot, readFixture, shadowrunCatalogs } from '../../../../test/shadowrun'
 import { codes, createShadowrun } from './index'
 
-// Baixadas por `npm run fixtures`, na tag de package.json (nexus.systems).
-const root = fileURLToPath(new URL('../../../../test/fixtures/', import.meta.url))
-const readJson = (path: string): unknown => JSON.parse(readFileSync(join(root, path), 'utf8'))
-
-const catalog = (name: string) => readJson(`data/systems/shadowrun/5e/${name}.json`)
-const catalogs = {
-  system: catalog('system'),
-  metatypes: catalog('metatypes'),
-  priorities: catalog('priorities'),
-  mechanics: catalog('mechanics'),
-  qualities: catalog('qualities'),
-  skills: catalog('skills'),
-  mentors: catalog('mentors'),
-  traditions: catalog('traditions'),
-} as Catalogs
-
+const catalogs = shadowrunCatalogs()
 const dir = 'fixtures/shadowrun/5e'
-const fixtures = readdirSync(join(root, dir))
+const fixtures = readdirSync(join(fixturesRoot, dir))
   .filter((f) => f.endsWith('.json'))
-  .map((f) => readJson(`${dir}/${f}`) as Fixture)
+  .map((f) => readFixture(`${dir}/${f}`) as Fixture)
 
 describe('shadowrun 5e', () => {
   const sys = createShadowrun(catalogs)
