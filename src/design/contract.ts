@@ -46,4 +46,6 @@ export interface Brand {
   // Fundo CSS da faixa do cartão; sem ele, a faixa é accent. O teste de
   // contraste confere ink sobre cada cor #RRGGBB que aparece aqui.
   cardArt?: string
+  // Fonte de títulos do sistema, usada na abertura.
+  display?: string
 }

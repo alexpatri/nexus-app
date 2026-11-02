@@ -8,7 +8,7 @@ import { adopt } from '@/core/sheets/open'
 import NxBar from '@/core/ui/NxBar.vue'
 import { enterWorld } from '@/core/ui/world'
 import { applyTheme } from '@/design/apply'
-import { modules, type SystemModule } from '@/systems'
+import { modules, splashOf, type SystemModule } from '@/systems'
 import BrandBand from './BrandBand.vue'
 
 const router = useIonRouter()
@@ -21,12 +21,12 @@ async function start(module: SystemModule, event: MouseEvent) {
   error.value = ''
   const card = (event.currentTarget as HTMLElement).getBoundingClientRect()
   try {
-    const [{ sheet }, world] = await Promise.all([
+    const [{ character, sheet }, world] = await Promise.all([
       createCharacter(module.id, module.version),
       module.load(),
     ])
     adopt(sheet)
-    await enterWorld(card, world.theme.color.surface)
+    await enterWorld(card, splashOf(module.brand), character.id)
     applyTheme(world.theme, module.id)
     router.push(`/fichas/${sheet.id}`)
   } catch (err) {

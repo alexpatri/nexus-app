@@ -1,12 +1,20 @@
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
+import { createMemoryHistory, createRouter } from 'vue-router'
 
 import CharacterCard from './CharacterCard.vue'
 import { character } from './testing'
 
+const router = () =>
+  createRouter({
+    history: createMemoryHistory(),
+    routes: [{ path: '/:p(.*)*', component: { render: () => null } }],
+  })
+
 describe('CharacterCard', () => {
   it('mostra o rascunho com o passo e a barra de segmentos', () => {
     const w = mount(CharacterCard, {
+      global: { plugins: [router()] },
       props: {
         character: character({
           summary: {
@@ -28,6 +36,7 @@ describe('CharacterCard', () => {
 
   it('mostra os destaques da ficha pronta e ignora o progresso', () => {
     const w = mount(CharacterCard, {
+      global: { plugins: [router()] },
       props: {
         character: character({
           status: 'ready',
@@ -48,12 +57,16 @@ describe('CharacterCard', () => {
   })
 
   it('usa o nome do personagem quando o resumo não tem título', () => {
-    const w = mount(CharacterCard, { props: { character: character({ name: '' }) } })
+    const w = mount(CharacterCard, {
+      global: { plugins: [router()] },
+      props: { character: character({ name: '' }) },
+    })
     expect(w.find('h2').text()).toBe('Sem nome')
   })
 
   it('mostra sistema sem módulo no app com a faixa neutra', () => {
     const w = mount(CharacterCard, {
+      global: { plugins: [router()] },
       props: {
         character: character({ system: 'dnd', systemVersion: '5e', summary: { title: 'Mira' } }),
       },

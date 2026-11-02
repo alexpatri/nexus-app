@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { IonContent, IonPage, onIonViewWillEnter, onIonViewWillLeave } from '@ionic/vue'
 import { computed, ref, shallowRef } from 'vue'
+import { onBeforeRouteLeave } from 'vue-router'
 
 import { messageFor } from '@/core/api/messages'
 import { catalogs } from '@/core/catalog/catalogs'
 import type { RulesSystem } from '@/core/rules/system'
 import { type OpenSheet, openSheet } from '@/core/sheets/open'
 import NxBar from '@/core/ui/NxBar.vue'
-import { arriveInWorld } from '@/core/ui/world'
+import { arriveInWorld, coverForReturn, worldStatus } from '@/core/ui/world'
 import { applyTheme } from '@/design/apply'
 import { moduleFor, type SystemModule, type SystemWorld } from '@/systems'
 
@@ -24,15 +25,20 @@ const view = computed(() =>
 )
 
 async function load() {
+  worldStatus('Abrindo a ficha', 0.2)
   open.value = await openSheet(props.id)
   module.value = moduleFor(open.value.sheet.system, open.value.sheet.systemVersion)
   if (!module.value) {
     error.value = 'Este sistema ainda não tem telas no app.'
     return
   }
+  worldStatus(`Carregando as regras de ${module.value.brand.name}`, 0.5)
   world.value = await module.value.load()
   applyTheme(world.value.theme, module.value.id)
+  worldStatus('Carregando os catálogos', 0.75)
   rules.value = await world.value.rules(catalogs)
+  const name = open.value.sheet.summary.title.trim()
+  worldStatus(name ? `Ficha de ${name} pronta` : 'Ficha pronta', 1)
 }
 
 onIonViewWillEnter(async () => {
@@ -45,6 +51,10 @@ onIonViewWillEnter(async () => {
     }
   }
   await arriveInWorld()
+})
+
+onBeforeRouteLeave((to) => {
+  if (to.name === 'characters') coverForReturn()
 })
 
 onIonViewWillLeave(() => {
