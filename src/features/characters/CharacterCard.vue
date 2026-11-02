@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useRouter } from 'vue-router'
 
 import type { CharacterListItem } from '@/core/api/characters'
-import { moduleFor } from '@/systems'
+import { enterWorld } from '@/core/ui/world'
+import { moduleFor, splashOf } from '@/systems'
 import BrandBand from './BrandBand.vue'
 
 const props = defineProps<{ character: CharacterListItem }>()
@@ -28,6 +30,20 @@ const label = computed(() => {
   return `${name.value}, ${state}`
 })
 
+const router = useRouter()
+const to = computed(() => `/fichas/${props.character.sheet.id}`)
+
+// Toque simples esmaece para o carregamento do sistema e só então navega;
+// com modificador, o link segue o comportamento do navegador.
+async function open(event: MouseEvent) {
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return
+  event.preventDefault()
+  if (brand.value) {
+    await enterWorld(splashOf(brand.value))
+  }
+  await router.push(to.value)
+}
+
 function segment(i: number) {
   const step = progress.value?.step ?? 0
   return i < step ? 'done' : i === step ? 'current' : 'todo'
@@ -35,24 +51,26 @@ function segment(i: number) {
 </script>
 
 <template>
-  <RouterLink :to="`/fichas/${character.sheet.id}`" class="card" :aria-label="label">
-    <BrandBand :system="character.system" :version="character.systemVersion" />
-    <div class="body">
-      <h2 class="name">{{ name }}</h2>
-      <p class="subtitle">{{ summary.subtitle }}</p>
-      <div v-if="draft" class="draft">
-        <p class="status">{{ status }}</p>
-        <div v-if="progress" class="segments" aria-hidden="true">
-          <span v-for="i in progress.total" :key="i" :class="segment(i)" />
+  <RouterLink v-slot="{ href }" :to="to" custom>
+    <a :href="href" class="card" :aria-label="label" @click="open">
+      <BrandBand :system="character.system" :version="character.systemVersion" />
+      <div class="body">
+        <h2 class="name">{{ name }}</h2>
+        <p class="subtitle">{{ summary.subtitle }}</p>
+        <div v-if="draft" class="draft">
+          <p class="status">{{ status }}</p>
+          <div v-if="progress" class="segments" aria-hidden="true">
+            <span v-for="i in progress.total" :key="i" :class="segment(i)" />
+          </div>
         </div>
+        <dl v-else-if="summary.highlights?.length" class="highlights">
+          <div v-for="h in summary.highlights" :key="h.label">
+            <dt>{{ h.label }}</dt>
+            <dd class="numeric">{{ h.value }}</dd>
+          </div>
+        </dl>
       </div>
-      <dl v-else-if="summary.highlights?.length" class="highlights">
-        <div v-for="h in summary.highlights" :key="h.label">
-          <dt>{{ h.label }}</dt>
-          <dd class="numeric">{{ h.value }}</dd>
-        </div>
-      </dl>
-    </div>
+    </a>
   </RouterLink>
 </template>
 

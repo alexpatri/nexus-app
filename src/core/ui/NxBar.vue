@@ -2,7 +2,10 @@
 import { IonBackButton, IonButtons, IonHeader, IonToolbar } from '@ionic/vue'
 import { chevronBack } from 'ionicons/icons'
 
-withDefaults(defineProps<{ back?: string; backLabel?: string }>(), { backLabel: 'Voltar' })
+// band é a faixa da marca do sistema logo abaixo da barra, o elo com o cartão.
+withDefaults(defineProps<{ back?: string; backLabel?: string; band?: string }>(), {
+  backLabel: 'Voltar',
+})
 </script>
 
 <template>
@@ -15,10 +18,15 @@ withDefaults(defineProps<{ back?: string; backLabel?: string }>(), { backLabel: 
         <slot />
       </div>
     </IonToolbar>
+    <div v-if="band" class="band" :style="{ background: band }" aria-hidden="true" />
   </IonHeader>
 </template>
 
 <style scoped>
+.band {
+  height: 10px;
+}
+
 .bar {
   display: flex;
   align-items: center;

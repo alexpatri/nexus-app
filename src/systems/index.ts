@@ -3,6 +3,7 @@ import type { Component } from 'vue'
 import type { CatalogLoader } from '@/core/catalog/loader'
 import type { RulesSystem } from '@/core/rules/system'
 import type { OpenSheet } from '@/core/sheets/open'
+import type { Splash } from '@/core/ui/world'
 import type { Brand, Theme } from '@/design/contract'
 import { shadowrunBrand } from './shadowrun/brand'
 
@@ -34,6 +35,13 @@ export const modules: SystemModule[] = [
     load: () => import('./shadowrun/world').then((m) => m.world),
   },
 ]
+
+// O carregamento da passagem para o mundo do sistema, na cor principal dele.
+export function splashOf(brand: Brand): Splash {
+  return {
+    color: brand.accent,
+  }
+}
 
 export function moduleFor(system: string, version: string): SystemModule | undefined {
   return modules.find((m) => m.id === system && m.version === version)

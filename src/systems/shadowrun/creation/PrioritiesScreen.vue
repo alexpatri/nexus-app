@@ -82,15 +82,10 @@ useFooter({
 }
 
 .column {
-  padding: 14px 0 var(--space-4);
-  border-top: var(--border-width) solid var(--color-rule);
-}
-
-h2 {
-  margin: 0 0 10px;
-  font-size: var(--text-xs);
-  font-weight: 600;
-  color: var(--color-text-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 0 var(--space-5);
 }
 
 .letters {
@@ -99,46 +94,44 @@ h2 {
 }
 
 .letter {
-  width: 48px;
+  width: 52px;
   height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0;
-  font: inherit;
-  font-size: var(--text-lg);
+  border: 0;
+  font-family: var(--font-numeric);
+  font-size: 1.375rem;
   cursor: pointer;
+  border-radius: var(--radius-control);
 }
 
 .free {
   font-weight: 700;
   color: var(--color-text);
   background: var(--color-surface-raised);
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-control);
+  box-shadow: inset 0 0 0 1px var(--sr-coal);
 }
 
-/* Círculo de caneta, levemente irregular e inclinado. */
 .picked {
-  font-weight: 800;
-  color: var(--sr-pen);
-  background: transparent;
-  border: 2px solid var(--sr-pen);
-  border-radius: 52% 48% 50% 50% / 46% 54% 48% 52%;
-  transform: rotate(-5deg);
+  font-weight: 700;
+  color: var(--sr-on-dark);
+  background: var(--sr-carmine);
 }
 
+/* Letra já usada em outra coluna: riscada, ainda clicável para trocar. */
 .used {
   font-weight: 500;
   color: var(--color-text-muted);
   background: transparent;
-  border: var(--border-width) solid transparent;
+  box-shadow: inset 0 0 0 1px var(--color-rule);
   text-decoration: line-through;
   text-decoration-thickness: 2px;
 }
 
 .gives {
-  margin: 10px 0 0;
+  margin: 0;
   font-size: var(--text-sm);
   line-height: 1.45;
 }

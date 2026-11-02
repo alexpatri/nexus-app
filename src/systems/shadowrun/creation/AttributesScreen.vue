@@ -4,6 +4,8 @@ import { computed } from 'vue'
 import type { Violation } from '@/core/rules/system'
 import type { Derived } from '../rules'
 import BudgetBoxes from '../ui/BudgetBoxes.vue'
+import EdgeHexes from '../ui/EdgeHexes.vue'
+import SrPanel from '../ui/SrPanel.vue'
 import { pointsOf, setPoints } from './attributes'
 import { useCatalogs } from './catalogs'
 import type { Edit } from './edit'
@@ -58,10 +60,12 @@ const groups = computed(() =>
     { title: 'Mentais', category: 'mental' },
   ].map((g) => ({
     title: g.title,
+    physical: g.category === 'physical',
     rows: c.attributes.filter((a) => a.category === g.category).map((a) => row(a.id)),
   })),
 )
 const edge = computed(() => row('edg'))
+const edgeMax = computed(() => metatype.value?.attributes.edg?.max ?? 6)
 
 function bump(id: string, delta: number) {
   props.edit((data) => setPoints(data, id, pointsOf(data, id) + delta))
@@ -108,21 +112,20 @@ useFooter({
       <p v-else class="intro">Escolha a prioridade de Atributos para ter pontos a distribuir.</p>
     </div>
 
-    <section v-for="g in groups" :key="g.title" class="group">
-      <h2>{{ g.title }}</h2>
+    <SrPanel v-for="g in groups" :key="g.title" :title="g.title" class="group">
       <div v-for="r in g.rows" :key="r.id" class="row">
         <div class="label">
-          <span class="name">{{ r.name }}</span>
-          <span class="hint numeric">{{ r.hint }}</span>
+          <span :class="['name', { physical: g.physical }]">{{ r.name }}</span>
+          <span class="hint">{{ r.hint }}</span>
         </div>
         <button
           type="button"
-          class="step"
+          class="sr-outline step"
           :aria-label="`Baixar ${r.name}`"
           :disabled="r.points === 0"
           @click="bump(r.id, -1)"
         >
-          −
+          <span>−</span>
         </button>
         <output
           :class="['value', 'numeric', { flagged: flagged.has(r.id) }]"
@@ -133,18 +136,17 @@ useFooter({
         </output>
         <button
           type="button"
-          class="step"
+          class="sr-outline step"
           :aria-label="`Subir ${r.name}`"
           :disabled="r.atMax"
           @click="bump(r.id, 1)"
         >
-          +
+          <span>+</span>
         </button>
       </div>
-    </section>
+    </SrPanel>
 
-    <section class="group">
-      <h2>Especial</h2>
+    <SrPanel title="Especiais" class="group">
       <BudgetBoxes
         v-if="special && special.total > 0"
         class="special-budget"
@@ -155,6 +157,7 @@ useFooter({
       <div class="row">
         <div class="label">
           <span class="name">{{ edge.name }}</span>
+          <EdgeHexes :value="edge.value" :max="edgeMax" :label="edge.name" />
           <span class="hint">
             {{
               special && special.total > 0
@@ -166,12 +169,12 @@ useFooter({
         <template v-if="special && special.total > 0">
           <button
             type="button"
-            class="step"
+            class="sr-outline step"
             :aria-label="`Baixar ${edge.name}`"
             :disabled="edge.points === 0"
             @click="bump('edg', -1)"
           >
-            −
+            <span>−</span>
           </button>
           <output
             :class="['value', 'numeric', { flagged: flagged.has('edg') }]"
@@ -182,19 +185,19 @@ useFooter({
           </output>
           <button
             type="button"
-            class="step"
+            class="sr-outline step"
             :aria-label="`Subir ${edge.name}`"
             :disabled="edge.atMax"
             @click="bump('edg', 1)"
           >
-            +
+            <span>+</span>
           </button>
         </template>
         <output v-else class="value numeric" :aria-label="`${edge.name} ${edge.value}`">
           {{ edge.value }}
         </output>
       </div>
-    </section>
+    </SrPanel>
   </template>
 </template>
 
@@ -211,44 +214,49 @@ useFooter({
   position: sticky;
   top: 0;
   z-index: var(--z-sticky);
-  margin: calc(-1 * var(--space-5)) calc(-1 * var(--space-4)) 0;
+  margin: calc(-1 * var(--space-5)) calc(-1 * var(--space-4)) var(--space-4);
   padding: 14px var(--space-4) var(--space-3);
   background: var(--color-surface);
   border-bottom: var(--border-width) solid var(--color-rule);
 }
 
 .group {
-  padding-top: 14px;
-}
-
-h2 {
-  margin: 0 0 var(--space-1);
-  font-size: var(--text-xs);
-  font-weight: 600;
-  color: var(--color-text-muted);
+  margin-bottom: var(--space-5);
 }
 
 .special-budget {
-  margin: var(--space-2) 0;
+  margin: var(--space-3) 0 var(--space-1);
 }
 
 .row {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  min-height: 56px;
+  min-height: 58px;
   border-bottom: var(--border-width) solid var(--color-surface-sunken);
+}
+
+.row:last-child {
+  border-bottom: 0;
 }
 
 .label {
   flex-grow: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
+  gap: 2px;
 }
 
 .name {
-  font-size: var(--text-md);
+  font-family: var(--font-numeric);
+  font-size: 1.1875rem;
   font-weight: 600;
+}
+
+/* Atributos físicos em carmim, como na ficha do livro. */
+.name.physical {
+  color: var(--sr-carmine);
 }
 
 .hint {
@@ -260,39 +268,22 @@ h2 {
   width: var(--touch-min);
   height: var(--touch-min);
   flex-shrink: 0;
-  padding: 0;
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-control);
-  background: var(--color-surface-raised);
-  color: var(--color-text);
-  font: inherit;
   font-size: 1.375rem;
   line-height: 1;
-  cursor: pointer;
-}
-
-.step:disabled {
-  border-color: var(--color-surface-sunken);
-  background: transparent;
-  color: var(--color-rule);
-  cursor: not-allowed;
 }
 
 .value {
-  width: 48px;
-  height: var(--touch-min);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-control);
-  background: var(--color-surface-raised);
+  width: 36px;
+  text-align: center;
   color: var(--sr-pen);
-  font-size: 1.25rem;
+  font-size: 1.625rem;
   font-weight: 700;
 }
 
+/* Violação: o número em vermelho de alerta com sublinhado grosso. */
 .value.flagged {
-  border: 2px solid var(--color-danger);
+  color: var(--color-danger);
+  text-decoration: underline 3px;
+  text-underline-offset: 4px;
 }
 </style>

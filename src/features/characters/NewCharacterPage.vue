@@ -8,25 +8,24 @@ import { adopt } from '@/core/sheets/open'
 import NxBar from '@/core/ui/NxBar.vue'
 import { enterWorld } from '@/core/ui/world'
 import { applyTheme } from '@/design/apply'
-import { modules, type SystemModule } from '@/systems'
+import { modules, splashOf, type SystemModule } from '@/systems'
 import BrandBand from './BrandBand.vue'
 
 const router = useIonRouter()
 const busy = ref('')
 const error = ref('')
 
-async function start(module: SystemModule, event: MouseEvent) {
+async function start(module: SystemModule) {
   if (busy.value) return
   busy.value = module.id
   error.value = ''
-  const card = (event.currentTarget as HTMLElement).getBoundingClientRect()
   try {
     const [{ sheet }, world] = await Promise.all([
       createCharacter(module.id, module.version),
       module.load(),
     ])
     adopt(sheet)
-    await enterWorld(card, world.theme.color.surface)
+    await enterWorld(splashOf(module.brand))
     applyTheme(world.theme, module.id)
     router.push(`/fichas/${sheet.id}`)
   } catch (err) {
@@ -56,7 +55,7 @@ async function start(module: SystemModule, event: MouseEvent) {
           type="button"
           class="system"
           :aria-busy="busy === m.id"
-          @click="start(m, $event)"
+          @click="start(m)"
         >
           <BrandBand :system="m.id" :version="m.version" />
           <span class="body">

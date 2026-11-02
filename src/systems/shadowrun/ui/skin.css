@@ -1,0 +1,119 @@
+/* Pele do Shadowrun dentro da moldura do Nexus (frontend-design-shadowrun.md):
+   barras e controles são do shell; carvão, carmim, âmbar e cantos chanfrados
+   ficam no conteúdo. Só vale com o tema do sistema aplicado na raiz. */
+:root[data-system='shadowrun'] {
+  --sr-coal: #1e1f22;
+  --sr-slate: #2b2d31;
+  --sr-slate-2: #3a3d43;
+  --sr-carmine: #8e1b1e;
+  --sr-carmine-bright: #c2272d;
+  --sr-amber: #f0b429;
+  --sr-amber-ink: #8a5300;
+  --sr-on-dark: #ffffff;
+  --sr-on-dark-muted: #c9cacd;
+  --sr-zebra: #efefeb;
+  /* O que o jogador escolhe e o que a ficha calcula. */
+  --sr-pen: #1e1f22;
+  --sr-print: #3a3d43;
+
+  --sr-chamfer: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+  --sr-chamfer-small: polygon(
+    6px 0,
+    100% 0,
+    100% calc(100% - 6px),
+    calc(100% - 6px) 100%,
+    0 100%,
+    0 6px
+  );
+  --sr-chamfer-large: polygon(
+    14px 0,
+    100% 0,
+    100% calc(100% - 14px),
+    calc(100% - 14px) 100%,
+    0 100%,
+    0 14px
+  );
+  --sr-tab: polygon(0 0, calc(100% - 14px) 0, 100% 100%, 0 100%);
+  --sr-hex: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+}
+
+:root[data-system='shadowrun'] input,
+:root[data-system='shadowrun'] select,
+:root[data-system='shadowrun'] textarea {
+  color: var(--sr-pen);
+}
+
+/* Botão secundário no padrão do Nexus (contador − e +, "Adicionar …"). */
+:root[data-system='shadowrun'] .sr-outline {
+  display: inline-flex;
+  padding: 0;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+:root[data-system='shadowrun'] .sr-outline > span {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+:root[data-system='shadowrun'] .sr-outline:disabled {
+  border-color: var(--color-rule);
+  background: transparent;
+  color: #9a9b97;
+  cursor: not-allowed;
+}
+
+/* Título de seção vira a aba carmim da ficha do livro. */
+:root[data-system='shadowrun'] main.content h2 {
+  align-self: flex-start;
+  width: fit-content;
+  margin: 0;
+  padding: 7px 30px 7px 12px;
+  background: var(--sr-carmine);
+  color: var(--sr-on-dark);
+  font-family: var(--font-display);
+  font-size: 0.6875rem;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  line-height: 1.4;
+  text-transform: uppercase;
+  clip-path: var(--sr-tab);
+}
+
+/* Nomes de item na fonte de dados, como as tabelas do livro. */
+:root[data-system='shadowrun'] main.content .name {
+  font-family: var(--font-numeric);
+  font-size: 1.1875rem;
+  font-weight: 600;
+}
+
+/* Marcador de escolha única: hexágono, como os pontos de Trunfo da ficha. */
+:root[data-system='shadowrun'] .ring {
+  width: 20px;
+  height: 23px;
+  border: 0;
+  border-radius: 0;
+  background: var(--color-border);
+  clip-path: var(--sr-hex);
+}
+
+:root[data-system='shadowrun'] .ring span {
+  width: 14px;
+  height: 17px;
+  border-radius: 0;
+  background: var(--color-surface-raised);
+  clip-path: var(--sr-hex);
+}
+
+:root[data-system='shadowrun'] [aria-checked='true'] .ring,
+:root[data-system='shadowrun'] .on .ring,
+:root[data-system='shadowrun'] [aria-checked='true'] .ring span,
+:root[data-system='shadowrun'] .on .ring span {
+  background: var(--sr-carmine);
+}

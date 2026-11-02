@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { IonContent, IonFooter, IonPage, onIonViewWillEnter } from '@ionic/vue'
+import { IonContent, IonFooter, IonPage, onIonViewDidEnter, onIonViewWillEnter } from '@ionic/vue'
 import { computed, ref } from 'vue'
 
 import { type CharacterListItem, listCharacters } from '@/core/api/characters'
 import { messageFor } from '@/core/api/messages'
 import { session } from '@/core/session/session'
 import NxBar from '@/core/ui/NxBar.vue'
+import { returnFromWorld } from '@/core/ui/world'
 import NexusMark from '@/design/NexusMark.vue'
 import CharacterCard from './CharacterCard.vue'
 import { sortForList } from './order'
@@ -14,6 +15,10 @@ const characters = ref<CharacterListItem[]>()
 const error = ref('')
 
 const initial = computed(() => session.state.user?.name.trim().charAt(0).toUpperCase() || '?')
+
+onIonViewDidEnter(() => {
+  void returnFromWorld()
+})
 
 onIonViewWillEnter(async () => {
   try {

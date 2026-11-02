@@ -6,6 +6,7 @@ import type { RulesSystem } from '@/core/rules/system'
 import type { OpenSheet } from '@/core/sheets/open'
 import NxBar from '@/core/ui/NxBar.vue'
 import NxButton from '@/core/ui/NxButton.vue'
+import { shadowrunBrand } from '../brand'
 import type { Derived } from '../rules'
 import AttributesScreen from './AttributesScreen.vue'
 import ConceptStep from './ConceptStep.vue'
@@ -104,10 +105,14 @@ function reload() {
 </script>
 
 <template>
-  <NxBar :back="back" :back-label="index === 0 ? 'Sair da criação' : 'Voltar'">
+  <NxBar
+    :back="back"
+    :back-label="index === 0 ? 'Sair da criação' : 'Voltar'"
+    :band="shadowrunBrand.cardArt"
+  >
     <div class="heading">
       <h1>{{ current.title }}</h1>
-      <span class="count numeric">Passo {{ number }} de {{ stepIds.length }}</span>
+      <span class="count">Passo {{ number }} de {{ stepIds.length }}</span>
     </div>
   </NxBar>
 
@@ -184,7 +189,21 @@ function reload() {
 
   <IonFooter class="ion-no-border">
     <div class="footer">
-      <p v-if="alert" role="alert" class="alert">{{ alert }}</p>
+      <p v-if="alert" role="alert" class="alert">
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.4"
+          aria-hidden="true"
+        >
+          <path d="M12 3l10 18H2z" />
+          <path d="M12 10v5M12 18v.5" />
+        </svg>
+        <span>{{ alert }}</span>
+      </p>
       <div class="bar">
         <p class="status" role="status">{{ status }}</p>
         <NxButton v-if="conflict" variant="text" @click="reload">Recarregar</NxButton>
@@ -206,8 +225,6 @@ function reload() {
 
 .heading h1 {
   margin: 0;
-  font-size: 1.25rem;
-  font-weight: 700;
 }
 
 .count {
@@ -221,21 +238,22 @@ function reload() {
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: minmax(0, 1fr);
-  gap: 3px;
-  padding: 0 var(--space-4);
+  gap: 4px;
+  padding: var(--space-2) var(--space-4) 0;
 }
 
 .segments span {
   height: 4px;
+  border-radius: 2px;
   background: var(--color-rule);
 }
 
 .segments .done {
-  background: var(--sr-print);
+  background: var(--sr-coal);
 }
 
 .segments .current {
-  background: var(--sr-pen);
+  background: var(--sr-carmine);
 }
 
 .content {
@@ -245,8 +263,6 @@ function reload() {
 .footer {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: var(--space-3) var(--space-4) var(--space-5);
   background: var(--color-surface-raised);
   border-top: var(--border-width) solid var(--color-rule);
 }
@@ -255,14 +271,25 @@ function reload() {
   display: flex;
   align-items: center;
   gap: var(--space-3);
+  padding: var(--space-3) var(--space-4) var(--space-5);
 }
 
+/* Violação no rodapé: texto de alerta com ícone, como no shell. */
 .alert {
   margin: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4) 0;
+  color: var(--color-danger);
   font-size: 0.875rem;
   line-height: 1.4;
   font-weight: 600;
-  color: var(--color-danger);
+}
+
+.alert svg {
+  flex-shrink: 0;
+  margin-top: 1px;
 }
 
 .status {

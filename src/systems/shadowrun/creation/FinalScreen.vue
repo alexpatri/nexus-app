@@ -81,7 +81,11 @@ const initiatives: Record<string, string> = {
 
 useFooter({
   status: computed(() =>
-    losses.value.length ? `${losses.value.length} sobra(s) a revisar` : 'Nada se perde',
+    losses.value.length === 1
+      ? '1 sobra a revisar'
+      : losses.value.length
+        ? `${losses.value.length} sobras a revisar`
+        : 'Nada se perde',
   ),
   alert: computed(() => {
     const v = props.violations[0]
@@ -263,8 +267,9 @@ input {
 
 .grid div {
   padding: var(--space-2) var(--space-3);
-  border: var(--border-width) solid var(--color-border);
   background: var(--color-surface-raised);
+  box-shadow: inset 0 0 0 1px var(--color-rule);
+  clip-path: var(--sr-chamfer-small);
 }
 
 dt {

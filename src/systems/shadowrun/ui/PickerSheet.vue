@@ -116,7 +116,7 @@ function toggle(item: T) {
   position: fixed;
   inset: 0;
   z-index: var(--z-overlay);
-  background: rgba(27, 35, 51, 0.5);
+  background: rgb(30 31 34 / 55%);
 }
 
 .sheet {
@@ -240,7 +240,8 @@ li {
 }
 
 .name {
-  font-size: var(--text-md);
+  font-family: var(--font-numeric);
+  font-size: 1.1875rem;
   font-weight: 600;
 }
 
@@ -256,8 +257,8 @@ li {
 
 .price {
   flex-shrink: 0;
-  font-size: var(--text-sm);
-  font-weight: 700;
+  font-size: 1.0625rem;
+  font-weight: 600;
 }
 
 .item:disabled .price {

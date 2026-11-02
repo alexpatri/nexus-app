@@ -125,7 +125,7 @@ export function pickerItems(c: UiCatalogs, list: ListName): GearPick[] {
         return {
           id: a.id,
           name: a.name,
-          note: `${augCategories[a.category] ?? a.category} · ${a.type === 'bioware' ? 'biônico' : 'cibernético'}`,
+          note: `${augCategories[a.category] ?? a.category}, ${a.type === 'bioware' ? 'biônico' : 'cibernético'}`,
           price: fromPrice(part.cost, !!a.rating || !!a.variants, min),
           blocked: availabilityBlock(c, availabilityOf(part.availability, min)),
           description: a.desc,
@@ -138,7 +138,7 @@ export function pickerItems(c: UiCatalogs, list: ListName): GearPick[] {
       ].map(({ d, kind }) => ({
         id: `${kind === 'Com-link' ? 'commlink' : 'cyberdeck'}:${d.id}`,
         name: d.name,
-        note: `${kind} · Nível ${d.deviceRating}`,
+        note: `${kind}, nível ${d.deviceRating}`,
         price: yen(price(d.cost, 1)),
         blocked:
           d.deviceRating > c.mechanics.creation.resources.maxDeviceRating

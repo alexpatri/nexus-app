@@ -30,7 +30,7 @@ const n = (x: number) => String(Math.abs(x)).replace('.', ',')
       </span>
     </div>
     <div :class="['boxes', { quarters }]" aria-hidden="true">
-      <span v-for="(g, i) in groups" :key="i" class="group">
+      <span v-for="(g, i) in groups" :key="i" class="cells">
         <span v-for="(b, j) in g" :key="j" :class="b" />
       </span>
     </div>
@@ -52,12 +52,14 @@ const n = (x: number) => String(Math.abs(x)).replace('.', ',')
 }
 
 .label {
-  font-size: 0.875rem;
+  font-family: var(--font-numeric);
+  font-size: 1.125rem;
   font-weight: 600;
 }
 
 .left {
-  font-size: 0.875rem;
+  font-family: var(--font-numeric);
+  font-size: 1.0625rem;
   color: var(--color-text-muted);
 }
 
@@ -67,7 +69,7 @@ const n = (x: number) => String(Math.abs(x)).replace('.', ',')
 }
 
 .boxes,
-.group {
+.cells {
   display: flex;
   flex-wrap: wrap;
   gap: 2px;
@@ -77,19 +79,19 @@ const n = (x: number) => String(Math.abs(x)).replace('.', ',')
   gap: var(--space-2);
 }
 
-.group span {
+.cells > span {
   width: 12px;
   height: 12px;
-  border: 1.5px solid var(--color-border);
+  border: 1px solid #8e8f8b;
   background: var(--color-surface-raised);
 }
 
-.group .spent {
-  border-color: var(--sr-print);
-  background: var(--sr-print);
+.cells > .spent {
+  border-color: var(--sr-coal);
+  background: var(--sr-coal);
 }
 
-.group .over {
+.cells > .over {
   border-color: var(--color-danger);
   background: var(--color-danger);
 }

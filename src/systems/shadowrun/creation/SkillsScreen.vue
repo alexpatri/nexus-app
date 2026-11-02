@@ -548,7 +548,7 @@ const hints: Record<Tab, string> = {
     <button
       v-else
       type="button"
-      class="add"
+      class="sr-outline add"
       @click="
         tab === 'active'
           ? (picking = 'skill')
@@ -557,14 +557,14 @@ const hints: Record<Tab, string> = {
             : startAdding()
       "
     >
-      {{
+      <span>{{
         {
           active: 'Adicionar perícia',
           groups: 'Adicionar grupo',
           knowledge: 'Adicionar conhecimento',
           languages: 'Adicionar idioma',
         }[tab]
-      }}
+      }}</span>
     </button>
   </section>
 
@@ -599,21 +599,22 @@ const hints: Record<Tab, string> = {
   padding: 0 2px;
   border: 0;
   background: transparent;
-  color: var(--color-text);
+  color: var(--color-text-muted);
   font: inherit;
   font-size: 0.875rem;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
 }
 
 [role='tab'][aria-selected='true'] {
-  color: var(--sr-pen);
+  color: var(--sr-carmine);
   font-weight: 700;
-  box-shadow: inset 0 -3px 0 var(--sr-pen);
+  box-shadow: inset 0 -3px 0 var(--sr-carmine);
 }
 
 .tab-budget {
-  font-size: 0.75rem;
+  font-family: var(--font-numeric);
+  font-size: 0.9375rem;
   font-weight: 500;
   color: var(--color-text-muted);
 }
@@ -779,14 +780,12 @@ input[type='text'] {
 .add {
   align-self: flex-start;
   min-height: var(--touch-min);
-  padding: 0 14px;
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-control);
-  background: transparent;
-  color: var(--color-text);
   font: inherit;
   font-size: var(--text-sm);
   font-weight: 600;
-  cursor: pointer;
+}
+
+.add > span {
+  padding: 0 14px;
 }
 </style>

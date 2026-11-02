@@ -1,6 +1,6 @@
 import type { CatalogLoader } from '@/core/catalog/loader'
 import type { SystemWorld } from '@/systems'
-import './creation/inks.css'
+import './ui/skin.css'
 import CreationFlow from './creation/CreationFlow.vue'
 import { buildUiCatalogs, type RawCatalogs, uiCatalogs } from './creation/catalogs'
 import { createShadowrun } from './rules'

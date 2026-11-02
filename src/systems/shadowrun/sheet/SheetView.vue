@@ -9,6 +9,9 @@ import type { Derived } from '../rules'
 import type { Sheet } from '../rules/validate'
 import { nameOf, useCatalogs } from '../creation/catalogs'
 import { augCategories, decimal, gearName, yen } from '../creation/resources'
+import { shadowrunBrand } from '../brand'
+import EdgeHexes from '../ui/EdgeHexes.vue'
+import SrPanel from '../ui/SrPanel.vue'
 
 const props = defineProps<{ open: OpenSheet; rules: RulesSystem }>()
 
@@ -42,7 +45,17 @@ const identity = computed(() => sheet.value.identity ?? {})
 const attr = (id: string) => derived.value?.attributes?.[id]
 const grid = ['bod', 'agi', 'rea', 'str', 'wil', 'log', 'int', 'cha']
 const abbr = (id: string) => c.attributes.find((a) => a.id === id)?.abbr ?? id
-const boxes = (n = 0) => Array.from({ length: n })
+// Monitor como na ficha do livro: linhas de 3 caixas, com a penalidade de
+// ferimento ao lado de cada linha.
+const monitor = (n = 0) =>
+  Array.from({ length: Math.ceil(n / 3) }, (_, row) => ({
+    penalty: row + 1,
+    cells: [0, 1, 2].map((col) => row * 3 + col < n),
+  }))
+const karmaLeft = computed(() => {
+  const k = derived.value?.budgets.karma
+  return k ? k.total - k.spent : undefined
+})
 
 const active = computed(() =>
   Object.entries(derived.value?.skills?.active ?? {})
@@ -112,7 +125,7 @@ const gear = computed(() => {
             nameOf(c.grades, x.grade ?? 'standard'),
           ]
             .filter(Boolean)
-            .join(' · '),
+            .join(', '),
         }
       }),
     },
@@ -169,9 +182,12 @@ const magic = computed(() => {
 </script>
 
 <template>
-  <NxBar back="/" back-label="Voltar para personagens">
+  <NxBar back="/" back-label="Voltar para personagens" :band="shadowrunBrand.cardArt">
     <div class="heading">
-      <h1>{{ identity.name || 'Sem nome' }}</h1>
+      <div class="title">
+        <h1>{{ identity.name || 'Sem nome' }}</h1>
+        <span class="context">Ficha-base</span>
+      </div>
       <RouterLink class="edit" :to="`${base}/concept`">Editar</RouterLink>
     </div>
   </NxBar>
@@ -180,62 +196,81 @@ const magic = computed(() => {
     <main class="content">
       <section v-if="tab === 'summary'" class="panel">
         <article class="sin" aria-label="Cartão SIN">
-          <span class="kicker">SIN</span>
+          <div class="sin-line">
+            <span class="kicker">SIN</span>
+            <span class="muted-dark">{{
+              open.sheet.status === 'ready' ? 'Ficha pronta' : 'Rascunho'
+            }}</span>
+          </div>
           <strong class="who">{{ identity.name || 'Sem nome' }}</strong>
           <span class="what">
-            {{
-              [nameOf(c.metatypes, sheet.metatype), identity.concept].filter(Boolean).join(' · ')
-            }}
+            {{ [nameOf(c.metatypes, sheet.metatype), identity.concept].filter(Boolean).join(', ') }}
           </span>
+          <div class="sin-stats">
+            <span
+              >Essência <strong>{{ decimal(derived?.essence ?? 0) }}</strong></span
+            >
+            <span v-if="karmaLeft !== undefined"
+              >Carma <strong>{{ karmaLeft }}</strong></span
+            >
+            <span v-if="derived?.startingNuyen !== undefined"
+              >Nuyen <strong>{{ yen(derived.startingNuyen) }}</strong></span
+            >
+          </div>
         </article>
         <p v-if="warnings.length" class="warning">
           {{ warnings.length === 1 ? '1 aviso' : `${warnings.length} avisos` }} do livro. A ficha
           continua valendo; revise ao editar.
         </p>
 
-        <h2>Condição</h2>
-        <div v-for="m in ['physical', 'stun'] as const" :key="m" class="monitor">
-          <span class="label">{{ m === 'physical' ? 'Físico' : 'Atordoamento' }}</span>
-          <span class="boxes" :aria-label="`${derived?.monitors?.[m]} caixas`">
-            <span v-for="(_, i) in boxes(derived?.monitors?.[m])" :key="i" />
-          </span>
-        </div>
-        <p class="line">
-          Trunfo <strong class="numeric">{{ attr('edg')?.natural ?? 0 }}</strong> · Essência
-          <strong class="numeric">{{ decimal(derived?.essence ?? 0) }}</strong>
-          <template v-if="awakened">
-            · {{ awakened }}
-            <strong class="numeric">{{
-              attr(awakened === 'Magia' ? 'mag' : 'res')?.natural
-            }}</strong>
-          </template>
-        </p>
-
-        <h2>Atributos</h2>
-        <dl class="attrs">
-          <div v-for="id in grid" :key="id">
-            <dt>{{ abbr(id) }}</dt>
-            <dd class="numeric">
-              {{ attr(id)?.natural }}
-              <span v-if="attr(id) && attr(id)!.augmented !== attr(id)!.natural" class="aug">
-                ({{ attr(id)!.augmented }})
-              </span>
-            </dd>
+        <SrPanel title="Condição">
+          <div class="condition">
+            <div v-for="m in ['physical', 'stun'] as const" :key="m" class="monitor">
+              <span class="label">{{ m === 'physical' ? 'Físico' : 'Atordoamento' }}</span>
+              <div class="grid" role="img" :aria-label="`${derived?.monitors?.[m]} caixas`">
+                <template v-for="r in monitor(derived?.monitors?.[m])" :key="r.penalty">
+                  <span v-for="(on, i) in r.cells" :key="i" :class="['box', { off: !on }]" />
+                  <span class="penalty numeric">−{{ r.penalty }}</span>
+                </template>
+              </div>
+            </div>
+            <div class="monitor">
+              <span class="label">Trunfo</span>
+              <EdgeHexes
+                class="edge"
+                :value="attr('edg')?.natural ?? 0"
+                :max="attr('edg')?.natural ?? 0"
+                label="Trunfo"
+              />
+            </div>
           </div>
-        </dl>
+        </SrPanel>
 
-        <h2>Limites e iniciativa</h2>
+        <section aria-label="Atributos" class="attrs">
+          <div class="attrs-head">
+            <span v-for="id in grid" :key="id">{{ abbr(id) }}</span>
+          </div>
+          <div class="attrs-values numeric">
+            <span v-for="id in grid" :key="id">
+              {{ attr(id)?.natural
+              }}<span v-if="attr(id) && attr(id)!.augmented !== attr(id)!.natural" class="aug">
+                ({{ attr(id)!.augmented }})</span
+              >
+            </span>
+          </div>
+        </section>
+
         <dl class="stats">
           <div>
-            <dt>Físico</dt>
+            <dt>Limite Físico</dt>
             <dd class="numeric">{{ derived?.limits?.physical }}</dd>
           </div>
           <div>
-            <dt>Mental</dt>
+            <dt>Limite Mental</dt>
             <dd class="numeric">{{ derived?.limits?.mental }}</dd>
           </div>
           <div>
-            <dt>Social</dt>
+            <dt>Limite Social</dt>
             <dd class="numeric">{{ derived?.limits?.social }}</dd>
           </div>
           <div>
@@ -250,71 +285,79 @@ const magic = computed(() => {
             <dd class="numeric">{{ derived?.armor }}</dd>
           </div>
           <div>
-            <dt>Nuyen inicial</dt>
-            <dd class="numeric">
-              {{ derived?.startingNuyen === undefined ? '—' : yen(derived.startingNuyen) }}
-            </dd>
+            <dt>Movimento</dt>
+            <dd class="numeric">{{ derived?.movement?.walk }} / {{ derived?.movement?.run }} m</dd>
           </div>
         </dl>
+        <p v-if="awakened" class="line">
+          {{ awakened }}
+          <strong class="numeric">{{ attr(awakened === 'Magia' ? 'mag' : 'res')?.natural }}</strong>
+        </p>
       </section>
 
       <section v-else-if="tab === 'skills'" class="panel">
-        <h2>Ativas</h2>
-        <ul class="list">
-          <li v-for="s in active" :key="s.id">
-            <span>{{ s.name }}</span>
-            <span class="numeric"
-              >{{ s.rating }}<span v-if="s.pool" class="pool">{{ s.pool }}</span></span
-            >
-          </li>
-        </ul>
-        <h2>Conhecimento e idiomas</h2>
-        <ul class="list">
-          <li v-for="k in [...knowledge, ...languages]" :key="k.key">
-            <span>{{ k.name }}</span>
-            <span class="numeric"
-              >{{ 'native' in k && k.native ? 'N' : k.rating
-              }}<span v-if="'pool' in k && k.pool" class="pool">{{ k.pool }}</span></span
-            >
-          </li>
-        </ul>
+        <SrPanel title="Perícias ativas">
+          <ul class="list">
+            <li v-for="s in active" :key="s.id">
+              <span class="item-name">{{ s.name }}</span>
+              <span class="numeric rating"
+                >{{ s.rating }}<span v-if="s.pool" class="pool">{{ s.pool }}</span></span
+              >
+            </li>
+          </ul>
+        </SrPanel>
+        <SrPanel title="Conhecimento e idiomas">
+          <ul class="list">
+            <li v-for="k in [...knowledge, ...languages]" :key="k.key">
+              <span class="item-name">{{ k.name }}</span>
+              <span class="numeric rating"
+                >{{ 'native' in k && k.native ? 'N' : k.rating
+                }}<span v-if="'pool' in k && k.pool" class="pool">{{ k.pool }}</span></span
+              >
+            </li>
+          </ul>
+        </SrPanel>
       </section>
 
       <section v-else-if="tab === 'gear'" class="panel">
-        <template v-for="g in gear" :key="g.title">
-          <h2>{{ g.title }}</h2>
+        <SrPanel v-for="g in gear" :key="g.title" :title="g.title">
           <ul class="list">
             <li v-for="x in g.items" :key="x.key">
               <span class="stack">
-                <span>{{ x.name }}</span>
+                <span class="item-name">{{ x.name }}</span>
                 <span v-if="x.detail" class="detail">{{ x.detail }}</span>
               </span>
             </li>
           </ul>
-        </template>
+        </SrPanel>
         <p v-if="!gear.length" class="line">Nenhum equipamento.</p>
       </section>
 
       <section v-else-if="tab === 'contacts'" class="panel">
-        <ul class="list">
-          <li v-for="ct in sheet.contacts ?? []" :key="ct.key">
-            <span class="stack">
-              <span>{{ ct.name || 'Contato sem nome' }}</span>
-              <span v-if="ct.notes" class="detail">{{ ct.notes }}</span>
-            </span>
-            <span class="numeric">C{{ ct.connection ?? 1 }} · L{{ ct.loyalty ?? 1 }}</span>
-          </li>
-        </ul>
-        <p v-if="!(sheet.contacts ?? []).length" class="line">Nenhum contato.</p>
+        <SrPanel v-if="(sheet.contacts ?? []).length" title="Contatos">
+          <ul class="list">
+            <li v-for="ct in sheet.contacts ?? []" :key="ct.key">
+              <span class="stack">
+                <span class="item-name">{{ ct.name || 'Contato sem nome' }}</span>
+                <span v-if="ct.notes" class="detail">{{ ct.notes }}</span>
+              </span>
+              <span class="numeric rating"
+                >Conexão {{ ct.connection ?? 1 }}, Lealdade {{ ct.loyalty ?? 1 }}</span
+              >
+            </li>
+          </ul>
+        </SrPanel>
+        <p v-else class="line">Nenhum contato.</p>
       </section>
 
       <section v-else class="panel">
-        <template v-for="g in magic" :key="g.title">
-          <h2>{{ g.title }}</h2>
+        <SrPanel v-for="g in magic" :key="g.title" :title="g.title">
           <ul class="list">
-            <li v-for="x in g.items" :key="x">{{ x }}</li>
+            <li v-for="x in g.items" :key="x">
+              <span class="item-name">{{ x }}</span>
+            </li>
           </ul>
-        </template>
+        </SrPanel>
       </section>
     </main>
   </IonContent>
@@ -338,59 +381,109 @@ const magic = computed(() => {
 <style scoped>
 .heading {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
   width: 100%;
 }
 
+.title {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 h1 {
   margin: 0;
-  font-size: 1.125rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.context {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
 }
 
 .edit {
-  color: var(--sr-pen);
-  font-weight: 600;
+  min-height: var(--touch-min);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-control);
+  color: var(--color-text);
+  font-weight: 700;
   font-size: var(--text-sm);
 }
 
 .content {
-  padding: var(--space-4);
+  padding: var(--space-3) var(--space-4) var(--space-5);
 }
 
 .panel {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-4);
 }
 
-h2 {
-  margin: var(--space-2) 0 0;
-  font-size: 1.0625rem;
-  font-weight: 700;
-}
-
+/* Cartão SIN: ardósia com varredura de tela, como uma credencial lida num leitor. */
 .sin {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: var(--space-4);
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-control);
-  background: var(--color-surface-raised);
+  gap: 6px;
+  padding: var(--space-4) 18px;
+  background-color: var(--sr-slate);
+  background-image: repeating-linear-gradient(
+    0deg,
+    rgb(255 255 255 / 3.5%) 0 1px,
+    transparent 1px 4px
+  );
+  color: var(--sr-on-dark);
+  clip-path: var(--sr-chamfer-large);
+}
+
+.sin-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-family: var(--font-numeric);
+  font-size: 0.9375rem;
 }
 
 .kicker {
-  font-size: var(--text-xs);
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  color: var(--color-text-muted);
+  font-weight: 600;
+  color: var(--sr-amber);
+}
+
+.muted-dark {
+  color: var(--sr-on-dark-muted);
 }
 
 .who {
-  font-size: 1.375rem;
-  color: var(--sr-pen);
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.5rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+.what {
+  font-size: var(--text-sm);
+}
+
+.sin-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  margin-top: 4px;
+  font-family: var(--font-numeric);
+  font-size: 1.0625rem;
+  color: var(--sr-on-dark-muted);
+}
+
+.sin-stats strong {
+  color: var(--sr-on-dark);
 }
 
 .warning,
@@ -399,72 +492,116 @@ h2 {
   font-size: var(--text-sm);
 }
 
+.condition {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+  padding: var(--space-3) 0;
+}
+
 .monitor {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: 6px;
 }
 
-.label,
-.detail {
-  font-size: var(--text-xs);
-  color: var(--color-text-muted);
+.label {
+  font-family: var(--font-numeric);
+  font-size: 1rem;
+  font-weight: 600;
 }
 
-.boxes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 3px;
-}
-
-.boxes span {
-  width: 18px;
-  height: 18px;
-  border: 1.5px solid var(--color-border);
-  background: var(--color-surface-raised);
-}
-
-.attrs,
-.stats {
-  margin: 0;
+.grid {
   display: grid;
-  gap: var(--space-2);
+  grid-template-columns: repeat(3, 22px) 26px;
+  gap: 3px;
+  align-items: center;
 }
 
-.attrs {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.stats {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.attrs div,
-.stats div {
-  padding: var(--space-2);
-  border: var(--border-width) solid var(--color-border);
+.box {
+  height: 22px;
+  border: 1px solid var(--sr-carmine);
   background: var(--color-surface-raised);
+}
+
+.box.off {
+  border: 0;
+  background: transparent;
+}
+
+.penalty {
+  padding-left: 4px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--sr-carmine);
+}
+
+.edge {
+  max-width: 44px;
+}
+
+/* Faixa de atributos do bloco de arquétipo do livro. */
+.attrs {
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-numeric);
   text-align: center;
 }
 
+.attrs-head,
+.attrs-values {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+}
+
+.attrs-head {
+  padding: 5px 0;
+  background: var(--sr-coal);
+  color: var(--sr-amber);
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.attrs-values {
+  padding: 6px 0;
+  background: var(--sr-slate-2);
+  color: var(--sr-on-dark);
+  font-size: 1.3125rem;
+  font-weight: 600;
+}
+
+.aug {
+  font-size: 0.9375rem;
+  color: var(--sr-amber);
+}
+
+.stats {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.stats div {
+  padding: var(--space-2) 10px;
+  background: var(--color-surface-raised);
+  box-shadow: inset 0 0 0 1px var(--color-rule);
+  clip-path: var(--sr-chamfer-small);
+}
+
 dt {
-  font-size: var(--text-xs);
+  font-size: 0.75rem;
   color: var(--color-text-muted);
 }
 
 dd {
   margin: 0;
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: var(--sr-print);
-}
-
-.aug {
-  font-size: var(--text-sm);
+  font-size: 1.375rem;
+  font-weight: 600;
 }
 
 .list {
-  margin: 0;
+  margin: 0 calc(-1 * var(--space-3));
   padding: 0;
   list-style: none;
 }
@@ -475,12 +612,33 @@ dd {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  border-bottom: var(--border-width) solid var(--color-surface-sunken);
+  padding: var(--space-1) var(--space-3);
+}
+
+.list li:nth-child(even) {
+  background: var(--sr-zebra);
+}
+
+.item-name {
+  font-family: var(--font-numeric);
+  font-size: 1.125rem;
+  font-weight: 600;
 }
 
 .stack {
   display: flex;
   flex-direction: column;
+}
+
+.detail {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.rating {
+  font-size: 1.125rem;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .pool {
@@ -494,17 +652,18 @@ dd {
 
 .tabs {
   display: flex;
+  padding: 0 var(--space-1) var(--space-3);
   background: var(--color-surface-raised);
   border-top: var(--border-width) solid var(--color-rule);
 }
 
 .tabs button {
+  position: relative;
   flex: 1 1 0;
   min-width: 0;
   min-height: 52px;
   padding: 0 2px;
   border: 0;
-  border-top: 3px solid transparent;
   background: transparent;
   color: var(--color-text-muted);
   font: inherit;
@@ -514,7 +673,19 @@ dd {
 }
 
 .tabs button[aria-selected='true'] {
-  border-top-color: var(--sr-pen);
-  color: var(--sr-pen);
+  color: var(--sr-carmine);
+  font-weight: 700;
+}
+
+/* Indicador da aba ativa, no topo, como os marcadores do shell. */
+.tabs button[aria-selected='true']::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 12px;
+  right: 12px;
+  height: 3px;
+  border-radius: 0 0 3px 3px;
+  background: var(--sr-carmine);
 }
 </style>
