@@ -8,8 +8,10 @@ const CLIP_MS = 420
 const FADE_MS = 320
 // Tempo mínimo da abertura depois de cobrir a tela, para ser lida mesmo com
 // tudo em cache.
-const HOLD_MS = 650
-const STEPS = 6
+const HOLD_MS = 1800
+// A barra acende um bloco por vez, até onde o carregamento já chegou.
+const STEPS = 10
+const BLOCK_MS = 140
 
 // O que a abertura mostra; vem da marca do sistema.
 export interface Splash {
@@ -31,6 +33,10 @@ let overlay: HTMLElement | undefined
 let coveredAt = 0
 let lines: HTMLElement | undefined
 let blocks: HTMLElement[] = []
+let lit = 0
+let target = 0
+let ticker: ReturnType<typeof setInterval> | undefined
+let filled: (() => void) | undefined
 // O personagem aberto por último, para a volta recolher até o cartão dele.
 let opened: { characterId: string; splash: Splash } | undefined
 
@@ -74,7 +80,13 @@ function build(splash: Splash): HTMLElement {
   })
   bar.setAttribute('aria-hidden', 'true')
   blocks = Array.from({ length: STEPS }, () => {
-    const b = el('span', { flex: '1', height: '6px', background: 'currentColor', opacity: '0.25' })
+    const b = el('span', {
+      flex: '1',
+      height: '6px',
+      background: 'currentColor',
+      opacity: '0.25',
+      transition: 'opacity 120ms ease-out',
+    })
     bar.append(b)
     return b
   })
@@ -124,14 +136,35 @@ export function worldStatus(text: string, done: number) {
   line.textContent = text
   lines.append(line)
   while (lines.children.length > 2) lines.firstElementChild?.remove()
-  const filled = Math.round(Math.min(1, done) * STEPS)
-  blocks.forEach((b, i) => (b.style.opacity = i < filled ? '1' : '0.25'))
+  advanceTo(Math.round(Math.min(1, done) * STEPS))
+}
+
+function advanceTo(n: number) {
+  target = Math.max(target, n)
+  ticker ??= setInterval(() => {
+    if (lit < target) blocks[lit++]!.style.opacity = '1'
+    if (lit >= target) {
+      clearInterval(ticker)
+      ticker = undefined
+      if (lit >= STEPS) filled?.()
+    }
+  }, BLOCK_MS)
+}
+
+// A barra termina de acender antes de a abertura sair.
+function fillAll(): Promise<void> {
+  if (!blocks.length || lit >= STEPS) return Promise.resolve()
+  return new Promise((resolve) => {
+    filled = resolve
+    advanceTo(STEPS)
+  })
 }
 
 // Chamado pela tela do sistema quando ela já está desenhada por baixo.
 export async function arriveInWorld(): Promise<void> {
   const root = overlay
   if (!root) return
+  await fillAll()
   overlay = undefined
   if (!reducedMotion()) {
     await wait(Math.max(0, HOLD_MS - (performance.now() - coveredAt)))
@@ -178,4 +211,9 @@ function leaveOverlay() {
   overlay = undefined
   lines = undefined
   blocks = []
+  lit = 0
+  target = 0
+  clearInterval(ticker)
+  ticker = undefined
+  filled = undefined
 }
