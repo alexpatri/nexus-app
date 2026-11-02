@@ -30,7 +30,7 @@ function view(name: string) {
 describe('SheetView', () => {
   it('mostra o cartão, os atributos e os limites da Clara', () => {
     const w = view('clara-final')
-    expect(w.find('.sin .what').text()).toBe('Elfo · Adepta mística desSINada')
+    expect(w.find('.sin .what').text()).toBe('Elfo, Adepta mística desSINada')
     expect(w.find('.stats').text()).toContain('10')
     expect(w.find('.edit').attributes('href')).toBe('/fichas/s1/concept')
   })
