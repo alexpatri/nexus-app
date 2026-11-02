@@ -27,7 +27,10 @@ const props = defineProps<{ open: OpenSheet; rules: RulesSystem; step?: string }
 const router = useIonRouter()
 const footer = provideFooter()
 
-const index = computed(() => screenIndex(props.step, props.open.sheet.summary.progress?.step))
+// Sem passo na rota, a tela é a do progresso na abertura: o autosave atualiza o
+// progresso e a tela não pode pular no meio da edição.
+const opened = props.open.sheet.summary.progress?.step
+const index = computed(() => screenIndex(props.step, opened))
 const current = computed(() => screens[index.value]!)
 const next = computed(() => screens[index.value + 1])
 const number = computed(() => stepNumber(current.value))
