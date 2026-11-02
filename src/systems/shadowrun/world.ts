@@ -4,6 +4,7 @@ import './creation/inks.css'
 import CreationFlow from './creation/CreationFlow.vue'
 import { buildUiCatalogs, type RawCatalogs, uiCatalogs } from './creation/catalogs'
 import { createShadowrun } from './rules'
+import SheetView from './sheet/SheetView.vue'
 import { shadowrunTheme } from './theme'
 
 async function rules(loader: CatalogLoader) {
@@ -36,4 +37,9 @@ async function rules(loader: CatalogLoader) {
   return createShadowrun(c)
 }
 
-export const world: SystemWorld = { theme: shadowrunTheme, Creation: CreationFlow, rules }
+export const world: SystemWorld = {
+  theme: shadowrunTheme,
+  Creation: CreationFlow,
+  Sheet: SheetView,
+  rules,
+}
