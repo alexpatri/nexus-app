@@ -127,27 +127,24 @@ function toggle(item: T) {
   background: var(--color-surface);
   color: var(--color-text);
   font-family: var(--font-body);
-  clip-path: polygon(16px 0, 100% 0, 100% 100%, 0 100%, 0 16px);
+  border-top: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
 }
 
-/* O topo da folha é a faixa de carvão dos cabeçalhos do livro. */
 .grip {
-  align-self: stretch;
-  height: 14px;
-  background: var(--sr-coal);
-  background-image: linear-gradient(var(--sr-slate-2), var(--sr-slate-2));
-  background-size: 40px 4px;
-  background-position: center 8px;
-  background-repeat: no-repeat;
+  align-self: center;
+  width: 40px;
+  height: 4px;
+  margin-top: var(--space-2);
+  border-radius: 2px;
+  background: var(--color-rule);
 }
 
 header {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  padding: 2px var(--space-2) 12px var(--space-4);
-  background: var(--sr-coal);
-  color: var(--sr-on-dark);
+  padding: 6px var(--space-2) 0 var(--space-4);
 }
 
 .heading {
@@ -158,17 +155,13 @@ header {
 
 h2 {
   margin: 0;
-  font-family: var(--font-display);
-  font-size: 0.9375rem;
-  font-weight: 400;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-size: 1.25rem;
+  font-weight: 700;
 }
 
 .subtitle {
-  font-family: var(--font-numeric);
-  font-size: 1rem;
-  color: var(--sr-on-dark-muted);
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
 }
 
 .close {
@@ -180,7 +173,7 @@ h2 {
   border: 0;
   border-radius: var(--radius-control);
   background: transparent;
-  color: var(--sr-on-dark);
+  color: var(--color-text);
   cursor: pointer;
 }
 

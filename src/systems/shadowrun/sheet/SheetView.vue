@@ -9,6 +9,7 @@ import type { Derived } from '../rules'
 import type { Sheet } from '../rules/validate'
 import { nameOf, useCatalogs } from '../creation/catalogs'
 import { augCategories, decimal, gearName, yen } from '../creation/resources'
+import { shadowrunBrand } from '../brand'
 import EdgeHexes from '../ui/EdgeHexes.vue'
 import SrPanel from '../ui/SrPanel.vue'
 
@@ -181,11 +182,12 @@ const magic = computed(() => {
 </script>
 
 <template>
-  <NxBar back="/" back-label="Voltar para personagens">
+  <NxBar back="/" back-label="Voltar para personagens" :band="shadowrunBrand.cardArt">
     <div class="heading">
-      <h1>
-        <span aria-hidden="true">»&nbsp;</span>Ficha-base<span aria-hidden="true">&nbsp;«</span>
-      </h1>
+      <div class="title">
+        <h1>{{ identity.name || 'Sem nome' }}</h1>
+        <span class="context">Ficha-base</span>
+      </div>
       <RouterLink class="edit" :to="`${base}/concept`">Editar</RouterLink>
     </div>
   </NxBar>
@@ -379,23 +381,38 @@ const magic = computed(() => {
 <style scoped>
 .heading {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
   width: 100%;
 }
 
+.title {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 h1 {
   margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.context {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
 }
 
 .edit {
   min-height: var(--touch-min);
   display: flex;
   align-items: center;
-  padding: 0 var(--space-2);
-  color: var(--sr-amber);
-  font-weight: 600;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-control);
+  color: var(--color-text);
+  font-weight: 700;
   font-size: var(--text-sm);
 }
 
@@ -635,26 +652,40 @@ dd {
 
 .tabs {
   display: flex;
-  background: var(--sr-coal);
+  padding: 0 var(--space-1) var(--space-3);
+  background: var(--color-surface-raised);
+  border-top: var(--border-width) solid var(--color-rule);
 }
 
 .tabs button {
+  position: relative;
   flex: 1 1 0;
   min-width: 0;
   min-height: 52px;
   padding: 0 2px;
   border: 0;
-  border-top: 3px solid transparent;
   background: transparent;
-  color: #a3a6ac;
-  font-family: var(--font-numeric);
-  font-size: 1rem;
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: var(--text-xs);
   font-weight: 600;
   cursor: pointer;
 }
 
 .tabs button[aria-selected='true'] {
-  border-top-color: var(--sr-carmine-bright);
-  color: var(--sr-on-dark);
+  color: var(--sr-carmine);
+  font-weight: 700;
+}
+
+/* Indicador da aba ativa, no topo, como os marcadores do shell. */
+.tabs button[aria-selected='true']::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 12px;
+  right: 12px;
+  height: 3px;
+  border-radius: 0 0 3px 3px;
+  background: var(--sr-carmine);
 }
 </style>

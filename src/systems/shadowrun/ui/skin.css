@@ -1,6 +1,6 @@
-/* Pele do Shadowrun sobre a gramática do Nexus (frontend-design-shadowrun.md):
-   carvão, carmim e âmbar do livro, cantos chanfrados e a faixa de cabeçalho
-   com ruído pixelado. Só vale com o tema do sistema aplicado na raiz. */
+/* Pele do Shadowrun dentro da moldura do Nexus (frontend-design-shadowrun.md):
+   barras e controles são do shell; carvão, carmim, âmbar e cantos chanfrados
+   ficam no conteúdo. Só vale com o tema do sistema aplicado na raiz. */
 :root[data-system='shadowrun'] {
   --sr-coal: #1e1f22;
   --sr-slate: #2b2d31;
@@ -11,7 +11,7 @@
   --sr-amber-ink: #8a5300;
   --sr-on-dark: #ffffff;
   --sr-on-dark-muted: #c9cacd;
-  --sr-zebra: #ecece8;
+  --sr-zebra: #efefeb;
   /* O que o jogador escolhe e o que a ficha calcula. */
   --sr-pen: #1e1f22;
   --sr-print: #3a3d43;
@@ -43,60 +43,14 @@
   color: var(--sr-pen);
 }
 
-/* A barra do shell vira a faixa de carvão do cabeçalho do livro. */
-:root[data-system='shadowrun'] ion-header ion-toolbar {
-  --background: var(--sr-coal);
-  --color: var(--sr-on-dark);
-  /* O botão de voltar do Ionic lê a cor daqui, não de --color. */
-  --ion-toolbar-color: var(--sr-on-dark);
-}
-
-:root[data-system='shadowrun'] ion-header ion-back-button {
-  --color: var(--sr-on-dark);
-}
-
-:root[data-system='shadowrun'] ion-header h1 {
-  font-family: var(--font-display);
-  font-weight: 400;
-  font-size: 0.8125rem;
-  line-height: 1.35;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--sr-on-dark);
-}
-
-:root[data-system='shadowrun'] ion-header.ion-no-border::after {
-  content: '';
-  display: block;
-  position: static;
-  height: 8px;
-  background-image: linear-gradient(
-    90deg,
-    var(--sr-coal) 0 6px,
-    transparent 6px 10px,
-    var(--sr-coal) 10px 14px,
-    transparent 14px 24px,
-    var(--sr-coal) 24px 28px,
-    transparent 28px 38px
-  );
-  background-size: 38px 4px;
-  background-repeat: repeat-x;
-  mask-image: linear-gradient(90deg, #000 0%, rgb(0 0 0 / 40%) 60%, transparent 100%);
-}
-
-/* Ações com o corte do livro, no lugar do canto redondo do Nexus. */
-:root[data-system='shadowrun'] .button {
-  clip-path: var(--sr-chamfer);
-}
-
-/* Contorno chanfrado: a moldura é o fundo de carvão aparecendo 1px em volta
-   do miolo, porque border some nos cantos cortados. */
+/* Botão secundário no padrão do Nexus (contador − e +, "Adicionar …"). */
 :root[data-system='shadowrun'] .sr-outline {
   display: inline-flex;
-  padding: 1px;
-  border: 0;
-  background: var(--sr-coal);
-  clip-path: var(--sr-chamfer-small);
+  padding: 0;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface-raised);
+  color: var(--color-text);
   cursor: pointer;
 }
 
@@ -106,18 +60,13 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  background: var(--color-surface);
-  color: var(--color-text);
-  clip-path: var(--sr-chamfer-small);
 }
 
 :root[data-system='shadowrun'] .sr-outline:disabled {
-  background: var(--color-rule);
-  cursor: not-allowed;
-}
-
-:root[data-system='shadowrun'] .sr-outline:disabled > span {
+  border-color: var(--color-rule);
+  background: transparent;
   color: #9a9b97;
+  cursor: not-allowed;
 }
 
 /* Título de seção vira a aba carmim da ficha do livro. */

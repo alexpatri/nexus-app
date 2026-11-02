@@ -6,6 +6,7 @@ import type { RulesSystem } from '@/core/rules/system'
 import type { OpenSheet } from '@/core/sheets/open'
 import NxBar from '@/core/ui/NxBar.vue'
 import NxButton from '@/core/ui/NxButton.vue'
+import { shadowrunBrand } from '../brand'
 import type { Derived } from '../rules'
 import AttributesScreen from './AttributesScreen.vue'
 import ConceptStep from './ConceptStep.vue'
@@ -104,13 +105,14 @@ function reload() {
 </script>
 
 <template>
-  <NxBar :back="back" :back-label="index === 0 ? 'Sair da criação' : 'Voltar'">
+  <NxBar
+    :back="back"
+    :back-label="index === 0 ? 'Sair da criação' : 'Voltar'"
+    :band="shadowrunBrand.cardArt"
+  >
     <div class="heading">
-      <h1>
-        <span aria-hidden="true">»&nbsp;</span>{{ current.title
-        }}<span aria-hidden="true">&nbsp;«</span>
-      </h1>
-      <span class="count numeric">Passo {{ number }} de {{ stepIds.length }}</span>
+      <h1>{{ current.title }}</h1>
+      <span class="count">Passo {{ number }} de {{ stepIds.length }}</span>
     </div>
   </NxBar>
 
@@ -226,9 +228,9 @@ function reload() {
 }
 
 .count {
-  font-family: var(--font-numeric);
-  font-size: 1rem;
-  color: var(--sr-on-dark-muted);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-text-muted);
   white-space: nowrap;
 }
 
@@ -236,12 +238,13 @@ function reload() {
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: minmax(0, 1fr);
-  gap: 3px;
-  padding: var(--space-1) var(--space-4) 0;
+  gap: 4px;
+  padding: var(--space-2) var(--space-4) 0;
 }
 
 .segments span {
   height: 4px;
+  border-radius: 2px;
   background: var(--color-rule);
 }
 
@@ -271,15 +274,14 @@ function reload() {
   padding: var(--space-3) var(--space-4) var(--space-5);
 }
 
-/* Violação no rodapé: tarja de carvão, para não se confundir com o carmim da marca. */
+/* Violação no rodapé: texto de alerta com ícone, como no shell. */
 .alert {
   margin: 0;
   display: flex;
   align-items: flex-start;
   gap: var(--space-2);
-  padding: 10px var(--space-4);
-  background: var(--sr-coal);
-  color: var(--sr-on-dark);
+  padding: var(--space-3) var(--space-4) 0;
+  color: var(--color-danger);
   font-size: 0.875rem;
   line-height: 1.4;
   font-weight: 600;
@@ -288,7 +290,6 @@ function reload() {
 .alert svg {
   flex-shrink: 0;
   margin-top: 1px;
-  color: var(--sr-amber);
 }
 
 .status {

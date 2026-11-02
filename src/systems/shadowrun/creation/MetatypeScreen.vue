@@ -112,7 +112,7 @@ useFooter({
 .option {
   background: var(--color-surface-raised);
   box-shadow: inset 0 0 0 1px var(--color-border);
-  clip-path: var(--sr-chamfer);
+  border-radius: var(--nx-radius-card);
 }
 
 .option.on {

@@ -104,7 +104,7 @@ useFooter({
   font-family: var(--font-numeric);
   font-size: 1.375rem;
   cursor: pointer;
-  clip-path: var(--sr-chamfer-small);
+  border-radius: var(--radius-control);
 }
 
 .free {

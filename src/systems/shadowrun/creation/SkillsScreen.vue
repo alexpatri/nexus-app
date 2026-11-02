@@ -586,7 +586,7 @@ const hints: Record<Tab, string> = {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   margin: calc(-1 * var(--space-3)) 0 var(--space-3);
-  background: var(--sr-coal);
+  border-bottom: var(--border-width) solid var(--color-rule);
 }
 
 [role='tab'] {
@@ -599,23 +599,24 @@ const hints: Record<Tab, string> = {
   padding: 0 2px;
   border: 0;
   background: transparent;
-  color: #a3a6ac;
+  color: var(--color-text-muted);
   font: inherit;
-  font-family: var(--font-numeric);
-  font-size: 1rem;
+  font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
 }
 
 [role='tab'][aria-selected='true'] {
-  color: var(--sr-on-dark);
-  box-shadow: inset 0 -3px 0 var(--sr-carmine-bright);
+  color: var(--sr-carmine);
+  font-weight: 700;
+  box-shadow: inset 0 -3px 0 var(--sr-carmine);
 }
 
 .tab-budget {
-  font-size: 0.875rem;
+  font-family: var(--font-numeric);
+  font-size: 0.9375rem;
   font-weight: 500;
-  color: var(--sr-on-dark-muted);
+  color: var(--color-text-muted);
 }
 
 .panel {

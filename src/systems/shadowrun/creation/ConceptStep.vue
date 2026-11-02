@@ -82,7 +82,7 @@ button {
   font: inherit;
   font-size: var(--text-sm);
   cursor: pointer;
-  clip-path: var(--sr-chamfer-small);
+  border-radius: var(--radius-control);
 }
 
 button[aria-pressed='true'] {
