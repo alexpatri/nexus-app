@@ -8,7 +8,7 @@ import { catalogs } from '@/core/catalog/catalogs'
 import type { RulesSystem } from '@/core/rules/system'
 import { type OpenSheet, openSheet } from '@/core/sheets/open'
 import NxBar from '@/core/ui/NxBar.vue'
-import { arriveInWorld, coverForReturn } from '@/core/ui/world'
+import { arriveInWorld, leaveWorld } from '@/core/ui/world'
 import { applyTheme } from '@/design/apply'
 import { moduleFor, type SystemModule, type SystemWorld } from '@/systems'
 
@@ -48,8 +48,9 @@ onIonViewWillEnter(async () => {
   await arriveInWorld()
 })
 
-onBeforeRouteLeave((to) => {
-  if (to.name === 'characters') coverForReturn()
+// A navegação espera o carregamento cobrir a ficha.
+onBeforeRouteLeave(async (to) => {
+  if (to.name === 'characters') await leaveWorld()
 })
 
 onIonViewWillLeave(() => {

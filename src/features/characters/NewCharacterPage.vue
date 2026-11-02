@@ -15,18 +15,17 @@ const router = useIonRouter()
 const busy = ref('')
 const error = ref('')
 
-async function start(module: SystemModule, event: MouseEvent) {
+async function start(module: SystemModule) {
   if (busy.value) return
   busy.value = module.id
   error.value = ''
-  const card = (event.currentTarget as HTMLElement).getBoundingClientRect()
   try {
     const [{ sheet }, world] = await Promise.all([
       createCharacter(module.id, module.version),
       module.load(),
     ])
     adopt(sheet)
-    await enterWorld(card, splashOf(module.brand))
+    await enterWorld(splashOf(module.brand))
     applyTheme(world.theme, module.id)
     router.push(`/fichas/${sheet.id}`)
   } catch (err) {
@@ -56,7 +55,7 @@ async function start(module: SystemModule, event: MouseEvent) {
           type="button"
           class="system"
           :aria-busy="busy === m.id"
-          @click="start(m, $event)"
+          @click="start(m)"
         >
           <BrandBand :system="m.id" :version="m.version" />
           <span class="body">

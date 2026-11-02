@@ -36,11 +36,10 @@ export const modules: SystemModule[] = [
   },
 ]
 
-// A passagem para o mundo do sistema, feita da faixa do cartão.
+// O carregamento da passagem para o mundo do sistema, na cor principal dele.
 export function splashOf(brand: Brand): Splash {
   return {
-    art: brand.cardArt ?? brand.accent,
-    edge: brand.accent,
+    color: brand.accent,
   }
 }
 

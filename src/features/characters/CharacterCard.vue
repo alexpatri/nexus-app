@@ -33,14 +33,13 @@ const label = computed(() => {
 const router = useRouter()
 const to = computed(() => `/fichas/${props.character.sheet.id}`)
 
-// Toque simples abre o mundo do sistema a partir do cartão e só então navega;
+// Toque simples esmaece para o carregamento do sistema e só então navega;
 // com modificador, o link segue o comportamento do navegador.
 async function open(event: MouseEvent) {
   if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return
   event.preventDefault()
   if (brand.value) {
-    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
-    await enterWorld(rect, splashOf(brand.value))
+    await enterWorld(splashOf(brand.value))
   }
   await router.push(to.value)
 }
