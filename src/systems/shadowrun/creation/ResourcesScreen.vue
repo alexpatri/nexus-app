@@ -301,7 +301,7 @@ useFooter({
 </script>
 
 <template>
-  <div class="sticky">
+  <div class="sr-sticky">
     <NuyenBar
       v-if="nuyen"
       :total="nuyen.total"
@@ -315,7 +315,7 @@ useFooter({
   </div>
 
   <SrPanel v-if="k2n" title="Carma em nuyen" class="side">
-    <p class="intro inside">
+    <p class="intro">
       Cada ponto de carma vira {{ yen(rate) }}, até {{ k2n.total }}. O carma convertido sai do que
       sobra para o passo 7.
     </p>
@@ -330,563 +330,542 @@ useFooter({
 
   <p v-for="m in general" :key="m" class="problem general">{{ m }}</p>
 
-  <section v-for="s in sections" :key="s.list" class="side">
-    <SrPanel :title="s.title">
-      <ul>
-        <li
-          v-for="row in rows[s.list]"
-          :key="row.it.key"
-          :class="{ flagged: problems.has(row.it.key) }"
+  <SrPanel v-for="s in sections" :key="s.list" :title="s.title" class="side">
+    <ul>
+      <li
+        v-for="row in rows[s.list]"
+        :key="row.it.key"
+        :class="{ flagged: problems.has(row.it.key) }"
+      >
+        <button
+          type="button"
+          class="row"
+          :aria-expanded="expanded === row.it.key"
+          @click="expanded = expanded === row.it.key ? undefined : row.it.key"
         >
-          <button
-            type="button"
-            class="row"
-            :aria-expanded="expanded === row.it.key"
-            @click="expanded = expanded === row.it.key ? undefined : row.it.key"
-          >
-            <span class="text">
-              <span class="name">{{ row.name }}</span>
-              <span class="detail">{{ row.detail }}</span>
-              <span v-if="problems.has(row.it.key)" class="problem">{{
-                problems.get(row.it.key)
-              }}</span>
-            </span>
-            <span class="numeric price">{{ cost(row.it.key) }}</span>
-          </button>
+          <span class="text">
+            <span class="name">{{ row.name }}</span>
+            <span class="detail">{{ row.detail }}</span>
+            <span v-if="problems.has(row.it.key)" class="problem">{{
+              problems.get(row.it.key)
+            }}</span>
+          </span>
+          <span class="numeric price">{{ cost(row.it.key) }}</span>
+        </button>
 
-          <div v-if="expanded === row.it.key" class="editor">
-            <!-- Estilo de vida -->
-            <template v-if="s.list === 'lifestyles'">
-              <div class="field">
-                <span class="label">Meses pagos</span>
-                <NumberStepper
-                  :label="`meses de ${row.name}`"
-                  :value="Number(row.it.months ?? 1)"
-                  :min="1"
-                  @change="
-                    change(
-                      s.list,
-                      row.it.key,
-                      (x: Item & { months?: number }) => (x.months = $event),
-                    )
-                  "
-                />
-              </div>
-              <label class="check">
+        <div v-if="expanded === row.it.key" class="editor">
+          <!-- Estilo de vida -->
+          <template v-if="s.list === 'lifestyles'">
+            <div class="field">
+              <span class="label">Meses pagos</span>
+              <NumberStepper
+                :label="`meses de ${row.name}`"
+                :value="Number(row.it.months ?? 1)"
+                :min="1"
+                @change="
+                  change(s.list, row.it.key, (x: Item & { months?: number }) => (x.months = $event))
+                "
+              />
+            </div>
+            <label class="check">
+              <input
+                type="checkbox"
+                :checked="!!row.it.primary"
+                @change="
+                  change(s.list, row.it.key, (x: Item & { primary?: boolean }) => {
+                    if (($event.target as HTMLInputElement).checked) x.primary = true
+                    else delete x.primary
+                  })
+                "
+              />
+              Estilo de vida principal (define o nuyen inicial)
+            </label>
+            <fieldset class="field">
+              <legend class="label">Opções</legend>
+              <label v-for="o in c.lifestyleOptions" :key="o.id" class="check">
                 <input
                   type="checkbox"
-                  :checked="!!row.it.primary"
+                  :checked="(row.it.options as string[] | undefined)?.includes(o.id)"
                   @change="
-                    change(s.list, row.it.key, (x: Item & { primary?: boolean }) => {
-                      if (($event.target as HTMLInputElement).checked) x.primary = true
-                      else delete x.primary
+                    change(s.list, row.it.key, (x: Item & { options?: string[] }) => {
+                      x.options = toggle(
+                        x.options,
+                        o.id,
+                        ($event.target as HTMLInputElement).checked,
+                      )
+                      if (!x.options.length) delete x.options
                     })
                   "
                 />
-                Estilo de vida principal (define o nuyen inicial)
+                {{ o.name }}
+                <span class="numeric muted">{{
+                  o.cost.percent !== undefined
+                    ? `${o.cost.percent > 0 ? '+' : ''}${o.cost.percent}%`
+                    : `+${yen(o.cost.add ?? 0)}`
+                }}</span>
               </label>
-              <fieldset class="field">
-                <legend class="label">Opções</legend>
-                <label v-for="o in c.lifestyleOptions" :key="o.id" class="check">
-                  <input
-                    type="checkbox"
-                    :checked="(row.it.options as string[] | undefined)?.includes(o.id)"
+            </fieldset>
+          </template>
+
+          <!-- Identidade -->
+          <template v-else-if="s.list === 'identities'">
+            <div class="field">
+              <label class="label" :for="`${row.it.key}-name`">Nome no SIN</label>
+              <input
+                :id="`${row.it.key}-name`"
+                type="text"
+                :value="row.it.name"
+                @change="
+                  change(
+                    s.list,
+                    row.it.key,
+                    (x: Item & { name?: string }) => (x.name = text($event)),
+                  )
+                "
+              />
+            </div>
+            <div class="field">
+              <span class="label">Nível do SIN</span>
+              <NumberStepper
+                label="nível do SIN"
+                :value="Number(row.it.rating ?? 1)"
+                :min="1"
+                :max="6"
+                @change="
+                  change(s.list, row.it.key, (x: Item & { rating?: number }) => (x.rating = $event))
+                "
+              />
+            </div>
+            <div
+              v-for="lc in (row.it.licenses as
+                { key: string; name?: string; rating?: number }[] | undefined) ?? []"
+              :key="lc.key"
+              :class="['license', { flagged: problems.has(lc.key) }]"
+            >
+              <label class="label" :for="`${lc.key}-name`">Licença</label>
+              <input
+                :id="`${lc.key}-name`"
+                type="text"
+                placeholder="Porte de arma, magia, motorista…"
+                :value="lc.name ?? ''"
+                @change="
+                  change(s.list, row.it.key, (x: Item & { licenses?: (typeof lc)[] }) => {
+                    x.licenses!.find((y) => y.key === lc.key)!.name = text($event)
+                  })
+                "
+              />
+              <NumberStepper
+                :label="`nível da licença ${lc.name || ''}`"
+                :value="lc.rating ?? 1"
+                :min="1"
+                :max="6"
+                @change="
+                  change(s.list, row.it.key, (x: Item & { licenses?: (typeof lc)[] }) => {
+                    x.licenses!.find((y) => y.key === lc.key)!.rating = $event
+                  })
+                "
+              />
+              <NxButton
+                variant="text"
+                class="remove"
+                @click="
+                  change(s.list, row.it.key, (x: Item & { licenses?: (typeof lc)[] }) => {
+                    x.licenses = x.licenses!.filter((y) => y.key !== lc.key)
+                    if (!x.licenses.length) delete x.licenses
+                  })
+                "
+                >Remover licença</NxButton
+              >
+            </div>
+            <button type="button" class="sr-add" @click="addLicense(row.it.key)">
+              <span>Adicionar licença falsa</span>
+            </button>
+          </template>
+
+          <!-- Arma -->
+          <template v-else-if="s.list === 'weapons'">
+            <div v-if="c.weapons.find((x) => x.id === row.it.id)?.rating" class="field">
+              <span class="label">Nível</span>
+              <NumberStepper
+                :label="`nível de ${row.name}`"
+                :value="
+                  ratingOf(
+                    row.it.rating as number | undefined,
+                    c.weapons.find((x) => x.id === row.it.id)?.rating,
+                  )
+                "
+                :min="c.weapons.find((x) => x.id === row.it.id)!.rating!.min"
+                :max="c.weapons.find((x) => x.id === row.it.id)!.rating!.max"
+                @change="
+                  change(s.list, row.it.key, (x: Item & { rating?: number }) => (x.rating = $event))
+                "
+              />
+            </div>
+            <div class="field">
+              <span class="label">Quantidade</span>
+              <NumberStepper
+                :label="`quantidade de ${row.name}`"
+                :value="Number(row.it.quantity ?? 1)"
+                :min="1"
+                @change="
+                  change(s.list, row.it.key, (x: Item & { quantity?: number }) => {
+                    if ($event > 1) x.quantity = $event
+                    else delete x.quantity
+                  })
+                "
+              />
+            </div>
+          </template>
+
+          <!-- Armadura -->
+          <template v-else-if="s.list === 'armor'">
+            <div
+              v-if="typeof c.armor.find((x) => x.id === row.it.id)?.cost === 'object'"
+              class="field"
+            >
+              <label class="label" :for="`${row.it.key}-cost`">Preço pago (¥)</label>
+              <input
+                :id="`${row.it.key}-cost`"
+                type="number"
+                inputmode="numeric"
+                min="0"
+                :value="row.it.cost ?? ''"
+                @change="
+                  change(
+                    s.list,
+                    row.it.key,
+                    (x: Item & { cost?: number }) => (x.cost = integer($event)),
+                  )
+                "
+              />
+            </div>
+            <fieldset v-if="c.armor.find((x) => x.id === row.it.id)?.options?.length" class="field">
+              <legend class="label">Opções</legend>
+              <label
+                v-for="o in c.armor.find((x) => x.id === row.it.id)!.options"
+                :key="o.id"
+                class="check"
+              >
+                <input
+                  type="checkbox"
+                  :checked="(row.it.options as string[] | undefined)?.includes(o.id)"
+                  @change="
+                    change(s.list, row.it.key, (x: Item & { options?: string[] }) => {
+                      x.options = toggle(
+                        x.options,
+                        o.id,
+                        ($event.target as HTMLInputElement).checked,
+                      )
+                      if (!x.options.length) delete x.options
+                    })
+                  "
+                />
+                {{ (o as { name?: string }).name }}
+              </label>
+            </fieldset>
+            <div
+              v-for="m in (row.it.modifications as
+                { key: string; id: string; rating?: number }[] | undefined) ?? []"
+              :key="m.key"
+              class="license"
+            >
+              <span class="label">{{ gearName(c, m.id) }}</span>
+              <NumberStepper
+                v-if="c.armorModifications.find((x) => x.id === m.id)?.rating"
+                :label="`nível de ${gearName(c, m.id)}`"
+                :value="m.rating ?? 1"
+                :min="1"
+                :max="6"
+                @change="
+                  change(s.list, row.it.key, (x: Item & { modifications?: (typeof m)[] }) => {
+                    x.modifications!.find((y) => y.key === m.key)!.rating = $event
+                  })
+                "
+              />
+              <NxButton
+                variant="text"
+                class="remove"
+                @click="
+                  change(s.list, row.it.key, (x: Item & { modifications?: (typeof m)[] }) => {
+                    x.modifications = x.modifications!.filter((y) => y.key !== m.key)
+                    if (!x.modifications.length) delete x.modifications
+                  })
+                "
+                >Remover modificação</NxButton
+              >
+            </div>
+            <div class="field">
+              <label class="label" :for="`${row.it.key}-mod`">Modificação</label>
+              <select
+                :id="`${row.it.key}-mod`"
+                value=""
+                @change="
+                  ($event.target as HTMLSelectElement).value &&
+                  addModification(row.it.key, ($event.target as HTMLSelectElement).value)
+                "
+              >
+                <option value="">Adicionar modificação…</option>
+                <option v-for="m in c.armorModifications" :key="m.id" :value="m.id">
+                  {{ m.name }}
+                </option>
+              </select>
+            </div>
+          </template>
+
+          <!-- Ampliação -->
+          <template v-else-if="s.list === 'augmentations'">
+            <template v-for="a in [c.augmentations.find((x) => x.id === row.it.id)]" :key="a?.id">
+              <template v-if="a">
+                <div class="field">
+                  <label class="label" :for="`${row.it.key}-grade`">Grau</label>
+                  <select
+                    :id="`${row.it.key}-grade`"
+                    :value="row.it.grade ?? 'standard'"
                     @change="
-                      change(s.list, row.it.key, (x: Item & { options?: string[] }) => {
-                        x.options = toggle(
-                          x.options,
-                          o.id,
-                          ($event.target as HTMLInputElement).checked,
-                        )
-                        if (!x.options.length) delete x.options
+                      change(s.list, row.it.key, (x: Item & { grade?: string }) => {
+                        const v = ($event.target as HTMLSelectElement).value
+                        if (v === 'standard') delete x.grade
+                        else x.grade = v
                       })
                     "
-                  />
-                  {{ o.name }}
-                  <span class="numeric muted">{{
-                    o.cost.percent !== undefined
-                      ? `${o.cost.percent > 0 ? '+' : ''}${o.cost.percent}%`
-                      : `+${yen(o.cost.add ?? 0)}`
-                  }}</span>
-                </label>
-              </fieldset>
-            </template>
-
-            <!-- Identidade -->
-            <template v-else-if="s.list === 'identities'">
-              <div class="field">
-                <label class="label" :for="`${row.it.key}-name`">Nome no SIN</label>
-                <input
-                  :id="`${row.it.key}-name`"
-                  type="text"
-                  :value="row.it.name"
-                  @change="
-                    change(
-                      s.list,
-                      row.it.key,
-                      (x: Item & { name?: string }) => (x.name = text($event)),
-                    )
-                  "
-                />
-              </div>
-              <div class="field">
-                <span class="label">Nível do SIN</span>
-                <NumberStepper
-                  label="nível do SIN"
-                  :value="Number(row.it.rating ?? 1)"
-                  :min="1"
-                  :max="6"
-                  @change="
-                    change(
-                      s.list,
-                      row.it.key,
-                      (x: Item & { rating?: number }) => (x.rating = $event),
-                    )
-                  "
-                />
-              </div>
-              <div
-                v-for="lc in (row.it.licenses as
-                  { key: string; name?: string; rating?: number }[] | undefined) ?? []"
-                :key="lc.key"
-                :class="['license', { flagged: problems.has(lc.key) }]"
-              >
-                <label class="label" :for="`${lc.key}-name`">Licença</label>
-                <input
-                  :id="`${lc.key}-name`"
-                  type="text"
-                  placeholder="Porte de arma, magia, motorista…"
-                  :value="lc.name ?? ''"
-                  @change="
-                    change(s.list, row.it.key, (x: Item & { licenses?: (typeof lc)[] }) => {
-                      x.licenses!.find((y) => y.key === lc.key)!.name = text($event)
-                    })
-                  "
-                />
-                <NumberStepper
-                  :label="`nível da licença ${lc.name || ''}`"
-                  :value="lc.rating ?? 1"
-                  :min="1"
-                  :max="6"
-                  @change="
-                    change(s.list, row.it.key, (x: Item & { licenses?: (typeof lc)[] }) => {
-                      x.licenses!.find((y) => y.key === lc.key)!.rating = $event
-                    })
-                  "
-                />
-                <NxButton
-                  variant="text"
-                  class="remove"
-                  @click="
-                    change(s.list, row.it.key, (x: Item & { licenses?: (typeof lc)[] }) => {
-                      x.licenses = x.licenses!.filter((y) => y.key !== lc.key)
-                      if (!x.licenses.length) delete x.licenses
-                    })
-                  "
-                  >Remover licença</NxButton
-                >
-              </div>
-              <button type="button" class="sr-outline add" @click="addLicense(row.it.key)">
-                <span>Adicionar licença falsa</span>
-              </button>
-            </template>
-
-            <!-- Arma -->
-            <template v-else-if="s.list === 'weapons'">
-              <div v-if="c.weapons.find((x) => x.id === row.it.id)?.rating" class="field">
-                <span class="label">Nível</span>
-                <NumberStepper
-                  :label="`nível de ${row.name}`"
-                  :value="
-                    ratingOf(
-                      row.it.rating as number | undefined,
-                      c.weapons.find((x) => x.id === row.it.id)?.rating,
-                    )
-                  "
-                  :min="c.weapons.find((x) => x.id === row.it.id)!.rating!.min"
-                  :max="c.weapons.find((x) => x.id === row.it.id)!.rating!.max"
-                  @change="
-                    change(
-                      s.list,
-                      row.it.key,
-                      (x: Item & { rating?: number }) => (x.rating = $event),
-                    )
-                  "
-                />
-              </div>
-              <div class="field">
-                <span class="label">Quantidade</span>
-                <NumberStepper
-                  :label="`quantidade de ${row.name}`"
-                  :value="Number(row.it.quantity ?? 1)"
-                  :min="1"
-                  @change="
-                    change(s.list, row.it.key, (x: Item & { quantity?: number }) => {
-                      if ($event > 1) x.quantity = $event
-                      else delete x.quantity
-                    })
-                  "
-                />
-              </div>
-            </template>
-
-            <!-- Armadura -->
-            <template v-else-if="s.list === 'armor'">
-              <div
-                v-if="typeof c.armor.find((x) => x.id === row.it.id)?.cost === 'object'"
-                class="field"
-              >
-                <label class="label" :for="`${row.it.key}-cost`">Preço pago (¥)</label>
-                <input
-                  :id="`${row.it.key}-cost`"
-                  type="number"
-                  inputmode="numeric"
-                  min="0"
-                  :value="row.it.cost ?? ''"
-                  @change="
-                    change(
-                      s.list,
-                      row.it.key,
-                      (x: Item & { cost?: number }) => (x.cost = integer($event)),
-                    )
-                  "
-                />
-              </div>
-              <fieldset
-                v-if="c.armor.find((x) => x.id === row.it.id)?.options?.length"
-                class="field"
-              >
-                <legend class="label">Opções</legend>
-                <label
-                  v-for="o in c.armor.find((x) => x.id === row.it.id)!.options"
-                  :key="o.id"
-                  class="check"
-                >
-                  <input
-                    type="checkbox"
-                    :checked="(row.it.options as string[] | undefined)?.includes(o.id)"
+                  >
+                    <option v-for="g in c.grades" :key="g.id" :value="g.id">
+                      {{ g.name }}{{ grades.includes(g.id) ? '' : ' (fora da criação)' }}
+                    </option>
+                  </select>
+                </div>
+                <div v-if="a.rating" class="field">
+                  <span class="label">Nível</span>
+                  <NumberStepper
+                    :label="`nível de ${row.name}`"
+                    :value="ratingOf(row.it.rating as number | undefined, a.rating)"
+                    :min="a.rating.min"
+                    :max="a.rating.max"
                     @change="
-                      change(s.list, row.it.key, (x: Item & { options?: string[] }) => {
-                        x.options = toggle(
-                          x.options,
-                          o.id,
-                          ($event.target as HTMLInputElement).checked,
-                        )
-                        if (!x.options.length) delete x.options
-                      })
+                      change(
+                        s.list,
+                        row.it.key,
+                        (x: Item & { rating?: number }) => (x.rating = $event),
+                      )
                     "
                   />
-                  {{ (o as { name?: string }).name }}
-                </label>
-              </fieldset>
-              <div
-                v-for="m in (row.it.modifications as
-                  { key: string; id: string; rating?: number }[] | undefined) ?? []"
-                :key="m.key"
-                class="license"
-              >
-                <span class="label">{{ gearName(c, m.id) }}</span>
-                <NumberStepper
-                  v-if="c.armorModifications.find((x) => x.id === m.id)?.rating"
-                  :label="`nível de ${gearName(c, m.id)}`"
-                  :value="m.rating ?? 1"
-                  :min="1"
-                  :max="6"
-                  @change="
-                    change(s.list, row.it.key, (x: Item & { modifications?: (typeof m)[] }) => {
-                      x.modifications!.find((y) => y.key === m.key)!.rating = $event
-                    })
-                  "
-                />
-                <NxButton
-                  variant="text"
-                  class="remove"
-                  @click="
-                    change(s.list, row.it.key, (x: Item & { modifications?: (typeof m)[] }) => {
-                      x.modifications = x.modifications!.filter((y) => y.key !== m.key)
-                      if (!x.modifications.length) delete x.modifications
-                    })
-                  "
-                  >Remover modificação</NxButton
-                >
-              </div>
-              <div class="field">
-                <label class="label" :for="`${row.it.key}-mod`">Modificação</label>
-                <select
-                  :id="`${row.it.key}-mod`"
-                  value=""
-                  @change="
-                    ($event.target as HTMLSelectElement).value &&
-                    addModification(row.it.key, ($event.target as HTMLSelectElement).value)
-                  "
-                >
-                  <option value="">Adicionar modificação…</option>
-                  <option v-for="m in c.armorModifications" :key="m.id" :value="m.id">
-                    {{ m.name }}
-                  </option>
-                </select>
-              </div>
-            </template>
-
-            <!-- Ampliação -->
-            <template v-else-if="s.list === 'augmentations'">
-              <template v-for="a in [c.augmentations.find((x) => x.id === row.it.id)]" :key="a?.id">
-                <template v-if="a">
-                  <div class="field">
-                    <label class="label" :for="`${row.it.key}-grade`">Grau</label>
-                    <select
-                      :id="`${row.it.key}-grade`"
-                      :value="row.it.grade ?? 'standard'"
-                      @change="
-                        change(s.list, row.it.key, (x: Item & { grade?: string }) => {
-                          const v = ($event.target as HTMLSelectElement).value
-                          if (v === 'standard') delete x.grade
-                          else x.grade = v
-                        })
-                      "
-                    >
-                      <option v-for="g in c.grades" :key="g.id" :value="g.id">
-                        {{ g.name }}{{ grades.includes(g.id) ? '' : ' (fora da criação)' }}
-                      </option>
-                    </select>
-                  </div>
-                  <div v-if="a.rating" class="field">
-                    <span class="label">Nível</span>
-                    <NumberStepper
-                      :label="`nível de ${row.name}`"
-                      :value="ratingOf(row.it.rating as number | undefined, a.rating)"
-                      :min="a.rating.min"
-                      :max="a.rating.max"
+                </div>
+                <fieldset v-if="a.variants?.length" class="field">
+                  <legend class="label">Modelo</legend>
+                  <label v-for="v in a.variants" :key="v.id" class="check">
+                    <input
+                      type="radio"
+                      :name="`${row.it.key}-variant`"
+                      :checked="row.it.variant === v.id"
                       @change="
                         change(
                           s.list,
                           row.it.key,
-                          (x: Item & { rating?: number }) => (x.rating = $event),
+                          (x: Item & { variant?: string }) => (x.variant = v.id),
                         )
                       "
                     />
-                  </div>
-                  <fieldset v-if="a.variants?.length" class="field">
-                    <legend class="label">Modelo</legend>
-                    <label v-for="v in a.variants" :key="v.id" class="check">
-                      <input
-                        type="radio"
-                        :name="`${row.it.key}-variant`"
-                        :checked="row.it.variant === v.id"
-                        @change="
-                          change(
-                            s.list,
-                            row.it.key,
-                            (x: Item & { variant?: string }) => (x.variant = v.id),
-                          )
-                        "
-                      />
-                      {{ (v as { name?: string }).name }}
-                    </label>
-                  </fieldset>
-                  <div v-if="a.parameter" class="field">
-                    <label class="label" :for="`${row.it.key}-param`">Perícia</label>
-                    <select
-                      :id="`${row.it.key}-param`"
-                      :value="row.it.parameter ?? ''"
-                      @change="
-                        change(s.list, row.it.key, (x: Item & { parameter?: string }) => {
-                          const v = ($event.target as HTMLSelectElement).value
-                          if (v) x.parameter = v
-                          else delete x.parameter
-                        })
-                      "
-                    >
-                      <option value="">Escolha…</option>
-                      <option v-for="sk in c.skills" :key="sk.id" :value="sk.id">
-                        {{ sk.name }}
-                      </option>
-                    </select>
-                  </div>
-                  <div
-                    v-if="capacityOf(augPart(a, row.it as never)).cost !== undefined"
-                    class="field"
-                  >
-                    <label class="label" :for="`${row.it.key}-host`">Instalado em</label>
-                    <select
-                      :id="`${row.it.key}-host`"
-                      :value="row.it.installedIn ?? ''"
-                      @change="
-                        change(s.list, row.it.key, (x: Item & { installedIn?: string }) => {
-                          const v = ($event.target as HTMLSelectElement).value
-                          if (v) x.installedIn = v
-                          else delete x.installedIn
-                        })
-                      "
-                    >
-                      <option value="">Direto no corpo</option>
-                      <option
-                        v-for="h in hostsFor(c, res, a, row.it.key)"
-                        :key="h.key"
-                        :value="h.key"
-                      >
-                        {{ h.name }}
-                      </option>
-                    </select>
-                  </div>
-                  <p class="muted small">
-                    {{ augCategories[a.category] ?? a.category }}. Instalado em outro implante,
-                    ocupa capacidade e não gasta Essência.
-                  </p>
-                </template>
-              </template>
-            </template>
-
-            <!-- Eletrônico -->
-            <template v-else-if="s.list === 'devices'">
-              <fieldset v-if="row.it.kind === 'commlink'" class="field">
-                <legend class="label">Opções</legend>
-                <label v-for="o in c.commlinkOptions" :key="o.id" class="check">
-                  <input
-                    type="checkbox"
-                    :checked="(row.it.options as string[] | undefined)?.includes(o.id)"
-                    @change="
-                      change(s.list, row.it.key, (x: Item & { options?: string[] }) => {
-                        x.options = toggle(
-                          x.options,
-                          o.id,
-                          ($event.target as HTMLInputElement).checked,
-                        )
-                        if (!x.options.length) delete x.options
-                      })
-                    "
-                  />
-                  {{ o.name }}
-                </label>
-              </fieldset>
-              <template v-else>
-                <fieldset class="field">
-                  <legend class="label">
-                    Atributos do deck ({{
-                      c.cyberdecks.find((x) => x.id === row.it.id)?.attributeArray?.join(', ')
-                    }})
-                  </legend>
-                  <div class="array">
-                    <label v-for="k in deckAttrs" :key="k" class="cell">
-                      <span class="label">{{ deckAttrNames[k] }}</span>
-                      <select
-                        :value="(row.it.array as Record<string, number> | undefined)?.[k] ?? ''"
-                        @change="
-                          change(
-                            s.list,
-                            row.it.key,
-                            (x: Item & { array?: Record<string, number> }) => {
-                              x.array = {
-                                ...x.array,
-                                [k]: Number(($event.target as HTMLSelectElement).value),
-                              }
-                            },
-                          )
-                        "
-                      >
-                        <option value="" disabled>—</option>
-                        <option
-                          v-for="(n, i) in c.cyberdecks.find((x) => x.id === row.it.id)
-                            ?.attributeArray"
-                          :key="i"
-                          :value="n"
-                        >
-                          {{ n }}
-                        </option>
-                      </select>
-                    </label>
-                  </div>
-                </fieldset>
-                <fieldset class="field">
-                  <legend class="label">Programas</legend>
-                  <label v-for="p in c.programs" :key="p.id" class="check">
-                    <input
-                      type="checkbox"
-                      :checked="(row.it.programs as string[] | undefined)?.includes(p.id)"
-                      @change="
-                        change(s.list, row.it.key, (x: Item & { programs?: string[] }) => {
-                          x.programs = toggle(
-                            x.programs,
-                            p.id,
-                            ($event.target as HTMLInputElement).checked,
-                          )
-                          if (!x.programs.length) delete x.programs
-                        })
-                      "
-                    />
-                    {{ p.name }} <span class="numeric muted">{{ yen(Number(p.cost)) }}</span>
+                    {{ (v as { name?: string }).name }}
                   </label>
                 </fieldset>
+                <div v-if="a.parameter" class="field">
+                  <label class="label" :for="`${row.it.key}-param`">Perícia</label>
+                  <select
+                    :id="`${row.it.key}-param`"
+                    :value="row.it.parameter ?? ''"
+                    @change="
+                      change(s.list, row.it.key, (x: Item & { parameter?: string }) => {
+                        const v = ($event.target as HTMLSelectElement).value
+                        if (v) x.parameter = v
+                        else delete x.parameter
+                      })
+                    "
+                  >
+                    <option value="">Escolha…</option>
+                    <option v-for="sk in c.skills" :key="sk.id" :value="sk.id">
+                      {{ sk.name }}
+                    </option>
+                  </select>
+                </div>
+                <div
+                  v-if="capacityOf(augPart(a, row.it as never)).cost !== undefined"
+                  class="field"
+                >
+                  <label class="label" :for="`${row.it.key}-host`">Instalado em</label>
+                  <select
+                    :id="`${row.it.key}-host`"
+                    :value="row.it.installedIn ?? ''"
+                    @change="
+                      change(s.list, row.it.key, (x: Item & { installedIn?: string }) => {
+                        const v = ($event.target as HTMLSelectElement).value
+                        if (v) x.installedIn = v
+                        else delete x.installedIn
+                      })
+                    "
+                  >
+                    <option value="">Direto no corpo</option>
+                    <option
+                      v-for="h in hostsFor(c, res, a, row.it.key)"
+                      :key="h.key"
+                      :value="h.key"
+                    >
+                      {{ h.name }}
+                    </option>
+                  </select>
+                </div>
+                <p class="muted small">
+                  {{ augCategories[a.category] ?? a.category }}. Instalado em outro implante, ocupa
+                  capacidade e não gasta Essência.
+                </p>
               </template>
             </template>
+          </template>
 
-            <!-- Outro item -->
-            <template v-else-if="s.list === 'other'">
-              <div class="field">
-                <label class="label" :for="`${row.it.key}-name`">Nome</label>
+          <!-- Eletrônico -->
+          <template v-else-if="s.list === 'devices'">
+            <fieldset v-if="row.it.kind === 'commlink'" class="field">
+              <legend class="label">Opções</legend>
+              <label v-for="o in c.commlinkOptions" :key="o.id" class="check">
                 <input
-                  :id="`${row.it.key}-name`"
-                  type="text"
-                  placeholder="Munição, kit médico, granada…"
-                  :value="row.it.name"
+                  type="checkbox"
+                  :checked="(row.it.options as string[] | undefined)?.includes(o.id)"
                   @change="
-                    change(
-                      s.list,
-                      row.it.key,
-                      (x: Item & { name?: string }) => (x.name = text($event)),
-                    )
-                  "
-                />
-              </div>
-              <div class="field">
-                <label class="label" :for="`${row.it.key}-cost`">Preço de cada (¥)</label>
-                <input
-                  :id="`${row.it.key}-cost`"
-                  type="number"
-                  inputmode="numeric"
-                  min="0"
-                  :value="row.it.cost ?? 0"
-                  @change="
-                    change(
-                      s.list,
-                      row.it.key,
-                      (x: Item & { cost?: number }) => (x.cost = integer($event)),
-                    )
-                  "
-                />
-              </div>
-              <div class="field">
-                <span class="label">Quantidade</span>
-                <NumberStepper
-                  :label="`quantidade de ${row.name}`"
-                  :value="Number(row.it.quantity ?? 1)"
-                  :min="1"
-                  @change="
-                    change(s.list, row.it.key, (x: Item & { quantity?: number }) => {
-                      if ($event > 1) x.quantity = $event
-                      else delete x.quantity
+                    change(s.list, row.it.key, (x: Item & { options?: string[] }) => {
+                      x.options = toggle(
+                        x.options,
+                        o.id,
+                        ($event.target as HTMLInputElement).checked,
+                      )
+                      if (!x.options.length) delete x.options
                     })
                   "
                 />
-              </div>
+                {{ o.name }}
+              </label>
+            </fieldset>
+            <template v-else>
+              <fieldset class="field">
+                <legend class="label">
+                  Atributos do deck ({{
+                    c.cyberdecks.find((x) => x.id === row.it.id)?.attributeArray?.join(', ')
+                  }})
+                </legend>
+                <div class="array">
+                  <label v-for="k in deckAttrs" :key="k" class="cell">
+                    <span class="label">{{ deckAttrNames[k] }}</span>
+                    <select
+                      :value="(row.it.array as Record<string, number> | undefined)?.[k] ?? ''"
+                      @change="
+                        change(
+                          s.list,
+                          row.it.key,
+                          (x: Item & { array?: Record<string, number> }) => {
+                            x.array = {
+                              ...x.array,
+                              [k]: Number(($event.target as HTMLSelectElement).value),
+                            }
+                          },
+                        )
+                      "
+                    >
+                      <option value="" disabled>—</option>
+                      <option
+                        v-for="(n, i) in c.cyberdecks.find((x) => x.id === row.it.id)
+                          ?.attributeArray"
+                        :key="i"
+                        :value="n"
+                      >
+                        {{ n }}
+                      </option>
+                    </select>
+                  </label>
+                </div>
+              </fieldset>
+              <fieldset class="field">
+                <legend class="label">Programas</legend>
+                <label v-for="p in c.programs" :key="p.id" class="check">
+                  <input
+                    type="checkbox"
+                    :checked="(row.it.programs as string[] | undefined)?.includes(p.id)"
+                    @change="
+                      change(s.list, row.it.key, (x: Item & { programs?: string[] }) => {
+                        x.programs = toggle(
+                          x.programs,
+                          p.id,
+                          ($event.target as HTMLInputElement).checked,
+                        )
+                        if (!x.programs.length) delete x.programs
+                      })
+                    "
+                  />
+                  {{ p.name }} <span class="numeric muted">{{ yen(Number(p.cost)) }}</span>
+                </label>
+              </fieldset>
             </template>
+          </template>
 
-            <NxButton variant="text" class="remove" @click="remove(s.list, row.it.key)"
-              >Remover {{ row.name }}</NxButton
-            >
-          </div>
-        </li>
-      </ul>
-      <p v-if="!rows[s.list].length" class="empty">Nada comprado.</p>
-    </SrPanel>
-    <button
-      type="button"
-      class="sr-outline add"
-      @click="s.picker ? (picking = s.list) : add(s.list)"
-    >
+          <!-- Outro item -->
+          <template v-else-if="s.list === 'other'">
+            <div class="field">
+              <label class="label" :for="`${row.it.key}-name`">Nome</label>
+              <input
+                :id="`${row.it.key}-name`"
+                type="text"
+                placeholder="Munição, kit médico, granada…"
+                :value="row.it.name"
+                @change="
+                  change(
+                    s.list,
+                    row.it.key,
+                    (x: Item & { name?: string }) => (x.name = text($event)),
+                  )
+                "
+              />
+            </div>
+            <div class="field">
+              <label class="label" :for="`${row.it.key}-cost`">Preço de cada (¥)</label>
+              <input
+                :id="`${row.it.key}-cost`"
+                type="number"
+                inputmode="numeric"
+                min="0"
+                :value="row.it.cost ?? 0"
+                @change="
+                  change(
+                    s.list,
+                    row.it.key,
+                    (x: Item & { cost?: number }) => (x.cost = integer($event)),
+                  )
+                "
+              />
+            </div>
+            <div class="field">
+              <span class="label">Quantidade</span>
+              <NumberStepper
+                :label="`quantidade de ${row.name}`"
+                :value="Number(row.it.quantity ?? 1)"
+                :min="1"
+                @change="
+                  change(s.list, row.it.key, (x: Item & { quantity?: number }) => {
+                    if ($event > 1) x.quantity = $event
+                    else delete x.quantity
+                  })
+                "
+              />
+            </div>
+          </template>
+
+          <NxButton variant="text" class="remove" @click="remove(s.list, row.it.key)"
+            >Remover {{ row.name }}</NxButton
+          >
+        </div>
+      </li>
+    </ul>
+    <p v-if="!rows[s.list].length" class="empty">Nada comprado.</p>
+    <button type="button" class="sr-add" @click="s.picker ? (picking = s.list) : add(s.list)">
       <span>{{ s.add }}</span>
     </button>
-  </section>
+  </SrPanel>
 
   <PickerSheet
     :open="!!picking"
@@ -902,26 +881,8 @@ useFooter({
 </template>
 
 <style scoped>
-/* O orçamento fica parado; a lista rola por baixo. */
-.sticky {
-  position: sticky;
-  top: 0;
-  z-index: var(--z-sticky);
-  margin: calc(-1 * var(--space-5)) calc(-1 * var(--space-4)) var(--space-4);
-  padding: 14px var(--space-4) var(--space-3);
-  background: var(--color-surface);
-  border-bottom: var(--border-width) solid var(--color-rule);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
 .awakened {
-  margin: 0;
-}
-
-.inside {
-  padding-top: var(--space-2);
+  margin: var(--space-2) 0 0;
 }
 
 .empty {
@@ -939,10 +900,7 @@ useFooter({
 }
 
 .side {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-bottom: var(--space-5);
+  margin-bottom: var(--space-4);
 }
 
 ul {
@@ -952,8 +910,8 @@ ul {
 }
 
 li {
-  margin: 0 calc(-1 * var(--space-3));
-  padding: 0 var(--space-3);
+  margin: 0 calc(-1 * var(--space-4));
+  padding: 0 var(--space-4);
   border-bottom: var(--border-width) solid var(--color-surface-sunken);
 }
 
@@ -989,8 +947,7 @@ li:nth-child(even) {
 }
 
 .name {
-  font-family: var(--font-numeric);
-  font-size: 1.1875rem;
+  font-size: var(--text-md);
   font-weight: 600;
 }
 
@@ -1093,17 +1050,5 @@ input[type='number'] {
 .remove {
   align-self: flex-start;
   color: var(--color-danger);
-}
-
-.add {
-  align-self: flex-start;
-  min-height: var(--touch-min);
-  font: inherit;
-  font-size: var(--text-sm);
-  font-weight: 600;
-}
-
-.add > span {
-  padding: 0 14px;
 }
 </style>

@@ -8,6 +8,7 @@ import { choicesFor, qualityCost, qualityKarma } from '../rules/qualities'
 import type { QualityItem } from '../rules/validate'
 import BudgetBoxes from '../ui/BudgetBoxes.vue'
 import PickerSheet, { type PickerItem } from '../ui/PickerSheet.vue'
+import SrPanel from '../ui/SrPanel.vue'
 import { nameOf, useCatalogs } from './catalogs'
 import type { Edit } from './edit'
 import { useFooter } from './footer'
@@ -152,8 +153,7 @@ useFooter({
     </template>
   </p>
 
-  <section v-for="side in sides" :key="side.kind" class="side">
-    <h2>{{ side.title }}</h2>
+  <SrPanel v-for="side in sides" :key="side.kind" :title="side.title" class="side">
     <BudgetBoxes
       v-if="side.budget"
       :label="`Carma em ${side.title.toLocaleLowerCase('pt-BR')}`"
@@ -269,10 +269,10 @@ useFooter({
         </div>
       </li>
     </ul>
-    <button type="button" class="sr-outline add" @click="picking = side.kind">
+    <button type="button" class="sr-add" @click="picking = side.kind">
       <span>{{ side.add }}</span>
     </button>
-  </section>
+  </SrPanel>
 
   <PickerSheet
     :open="!!picking"
@@ -295,16 +295,7 @@ useFooter({
 }
 
 .side {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-bottom: var(--space-5);
-}
-
-h2 {
-  margin: 0;
-  font-size: 1.0625rem;
-  font-weight: 700;
+  margin-bottom: var(--space-4);
 }
 
 ul {
@@ -447,17 +438,5 @@ input[type='text'] {
 .remove {
   align-self: flex-start;
   color: var(--color-danger);
-}
-
-.add {
-  align-self: flex-start;
-  min-height: var(--touch-min);
-  font: inherit;
-  font-size: var(--text-sm);
-  font-weight: 600;
-}
-
-.add > span {
-  padding: 0 14px;
 }
 </style>

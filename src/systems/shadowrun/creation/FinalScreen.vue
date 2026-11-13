@@ -5,6 +5,7 @@ import type { Violation } from '@/core/rules/system'
 import type { Derived } from '../rules'
 import { startingLifestyle } from '../rules/resources'
 import type { Sheet } from '../rules/validate'
+import SrPanel from '../ui/SrPanel.vue'
 import { useCatalogs } from './catalogs'
 import type { Edit } from './edit'
 import { useFooter } from './footer'
@@ -95,8 +96,7 @@ useFooter({
 </script>
 
 <template>
-  <section class="side">
-    <h2>Nuyen inicial</h2>
+  <SrPanel title="Nuyen inicial" class="side">
     <template v-if="lifestyle?.startingNuyen">
       <p class="intro">
         Role {{ lifestyle.startingNuyen.dice }}D6 e informe a soma. Ela vezes
@@ -120,10 +120,9 @@ useFooter({
       </p>
     </template>
     <p v-else class="intro">Escolha um estilo de vida principal no passo de recursos.</p>
-  </section>
+  </SrPanel>
 
-  <section class="side">
-    <h2>O que vai se perder</h2>
+  <SrPanel title="O que vai se perder" class="side">
     <ul v-if="losses.length" class="losses">
       <li v-for="l in losses" :key="l.text">
         <span>{{ l.text }}</span>
@@ -131,10 +130,9 @@ useFooter({
       </li>
     </ul>
     <p v-else class="intro">Nenhum ponto, nuyen ou carma fica sem uso.</p>
-  </section>
+  </SrPanel>
 
-  <section v-if="d?.limits" class="side">
-    <h2>Números finais</h2>
+  <SrPanel v-if="d?.limits" title="Números finais" class="side">
     <dl class="grid">
       <div>
         <dt>Essência</dt>
@@ -177,21 +175,12 @@ useFooter({
         <dd class="numeric">{{ d.movement?.walk }} / {{ d.movement?.run }} m</dd>
       </div>
     </dl>
-  </section>
+  </SrPanel>
 </template>
 
 <style scoped>
 .side {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-bottom: var(--space-5);
-}
-
-h2 {
-  margin: 0;
-  font-size: 1.0625rem;
-  font-weight: 700;
+  margin-bottom: var(--space-4);
 }
 
 .intro {
@@ -253,7 +242,7 @@ input {
 }
 
 .losses a {
-  color: var(--sr-pen);
+  color: var(--color-accent);
   font-weight: 600;
   white-space: nowrap;
 }
@@ -262,14 +251,16 @@ input {
   margin: 0;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-2);
+  column-gap: var(--space-4);
 }
 
 .grid div {
-  padding: var(--space-2) var(--space-3);
-  background: var(--color-surface-raised);
-  box-shadow: inset 0 0 0 1px var(--color-rule);
-  clip-path: var(--sr-chamfer-small);
+  padding: var(--space-2) 0;
+  border-bottom: var(--border-width) solid var(--color-surface-sunken);
+}
+
+.grid div:nth-last-child(-n + 2) {
+  border-bottom: 0;
 }
 
 dt {
@@ -279,8 +270,8 @@ dt {
 
 dd {
   margin: 0;
-  font-size: 1.125rem;
-  font-weight: 700;
+  font-size: 1.375rem;
+  font-weight: 600;
   color: var(--sr-print);
 }
 </style>

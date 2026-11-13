@@ -86,9 +86,9 @@ button {
 }
 
 button[aria-pressed='true'] {
-  background: var(--sr-carmine);
+  background: var(--color-accent);
   box-shadow: none;
-  color: var(--sr-on-dark);
+  color: var(--color-on-accent);
   font-weight: 600;
 }
 </style>

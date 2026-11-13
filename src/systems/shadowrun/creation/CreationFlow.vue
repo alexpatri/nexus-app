@@ -238,8 +238,8 @@ function reload() {
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: minmax(0, 1fr);
-  gap: 4px;
-  padding: var(--space-2) var(--space-4) 0;
+  gap: 3px;
+  padding: var(--space-3) var(--space-4) 0;
 }
 
 .segments span {
@@ -249,11 +249,11 @@ function reload() {
 }
 
 .segments .done {
-  background: var(--sr-coal);
+  background: var(--color-text);
 }
 
 .segments .current {
-  background: var(--sr-carmine);
+  background: var(--color-accent);
 }
 
 .content {
@@ -263,7 +263,7 @@ function reload() {
 .footer {
   display: flex;
   flex-direction: column;
-  background: var(--color-surface-raised);
+  background: var(--color-surface);
   border-top: var(--border-width) solid var(--color-rule);
 }
 

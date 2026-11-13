@@ -14,6 +14,7 @@ import {
 } from '../rules/magic'
 import BudgetBoxes from '../ui/BudgetBoxes.vue'
 import PickerSheet, { type PickerItem } from '../ui/PickerSheet.vue'
+import SrPanel from '../ui/SrPanel.vue'
 import { nameOf, useCatalogs } from './catalogs'
 import type { Edit } from './edit'
 import { useFooter } from './footer'
@@ -281,8 +282,11 @@ useFooter({
     prioridades e escolha uma.
   </p>
   <template v-else>
-    <section class="block">
-      <h2 :id="`${uid}-awakening`" class="small">O que a prioridade {{ letter }} dá</h2>
+    <SrPanel
+      :title="`O que a prioridade ${letter} dá`"
+      :title-id="`${uid}-awakening`"
+      class="block"
+    >
       <div role="radiogroup" :aria-labelledby="`${uid}-awakening`">
         <button
           v-for="e in [...entries, undefined]"
@@ -300,10 +304,9 @@ useFooter({
           </span>
         </button>
       </div>
-    </section>
+    </SrPanel>
 
-    <section v-if="has('tradition')" class="block">
-      <h2 :id="`${uid}-tradition`">Tradição</h2>
+    <SrPanel v-if="has('tradition')" title="Tradição" :title-id="`${uid}-tradition`" class="block">
       <div role="radiogroup" :aria-labelledby="`${uid}-tradition`">
         <button
           v-for="t in c.traditions"
@@ -318,10 +321,9 @@ useFooter({
           <span class="name">{{ t.name }}</span>
         </button>
       </div>
-    </section>
+    </SrPanel>
 
-    <section v-if="has('aspect')" class="block">
-      <h2 :id="`${uid}-aspect`">Aspecto</h2>
+    <SrPanel v-if="has('aspect')" title="Aspecto" :title-id="`${uid}-aspect`" class="block">
       <div role="radiogroup" :aria-labelledby="`${uid}-aspect`">
         <button
           v-for="a in aspects"
@@ -336,10 +338,14 @@ useFooter({
           <span class="name">{{ nameOf(c.groups, a) }}</span>
         </button>
       </div>
-    </section>
+    </SrPanel>
 
-    <section v-if="has('mentorAdvantage') && mentor" class="block">
-      <h2 :id="`${uid}-mentor`">Vantagem do espírito mentor</h2>
+    <SrPanel
+      v-if="has('mentorAdvantage') && mentor"
+      title="Vantagem do espírito mentor"
+      :title-id="`${uid}-mentor`"
+      class="block"
+    >
       <div role="radiogroup" :aria-labelledby="`${uid}-mentor`">
         <button
           v-for="[id, name] in [
@@ -357,16 +363,17 @@ useFooter({
           <span class="name">{{ name }}</span>
         </button>
       </div>
-    </section>
+    </SrPanel>
 
-    <section v-if="freeRule" class="block">
-      <h2>
-        {{
-          magic.awakening === 'aspected-magician'
-            ? 'Grupo dado pela prioridade'
-            : 'Perícias dadas pela prioridade'
-        }}
-      </h2>
+    <SrPanel
+      v-if="freeRule"
+      :title="
+        magic.awakening === 'aspected-magician'
+          ? 'Grupo dado pela prioridade'
+          : 'Perícias dadas pela prioridade'
+      "
+      class="block"
+    >
       <p class="detail">
         {{ freeChosen.length }} de {{ freeRule.count }}, no nível {{ freeRule.rating }}, antes dos
         pontos de perícia.
@@ -393,17 +400,16 @@ useFooter({
       <button
         v-if="freeChosen.length < freeRule.count"
         type="button"
-        class="sr-outline add"
+        class="sr-add"
         @click="picking = magic.awakening === 'aspected-magician' ? 'group' : 'skill'"
       >
         <span>{{
           magic.awakening === 'aspected-magician' ? 'Escolher grupo' : 'Escolher perícia'
         }}</span>
       </button>
-    </section>
+    </SrPanel>
 
-    <section v-if="has('formulas')" class="block">
-      <h2>Fórmulas</h2>
+    <SrPanel v-if="has('formulas')" title="Fórmulas" class="block">
       <p class="detail numeric">
         {{ formulaCount(magic) }} de {{ entry?.formulas ?? 0 }} gratuitas; as outras custam 5 de
         carma. Máximo {{ formulaMax }} de cada tipo.
@@ -425,17 +431,16 @@ useFooter({
         </li>
       </ul>
       <div class="actions">
-        <button type="button" class="sr-outline add" @click="picking = 'spells'">
+        <button type="button" class="sr-add" @click="picking = 'spells'">
           <span>Adicionar feitiço</span>
         </button>
-        <button type="button" class="sr-outline add" @click="picking = 'rituals'">
+        <button type="button" class="sr-add" @click="picking = 'rituals'">
           <span>Adicionar ritual</span>
         </button>
       </div>
-    </section>
+    </SrPanel>
 
-    <section v-if="has('complexForms')" class="block">
-      <h2>Formas complexas</h2>
+    <SrPanel v-if="has('complexForms')" title="Formas complexas" class="block">
       <p class="detail numeric">
         {{ magic.complexForms?.length ?? 0 }} de {{ entry?.complexForms ?? 0 }} gratuitas; as outras
         custam 4 de carma. Máximo {{ formsMax }}.
@@ -450,13 +455,12 @@ useFooter({
           </button>
         </li>
       </ul>
-      <button type="button" class="sr-outline add" @click="picking = 'complexForms'">
+      <button type="button" class="sr-add" @click="picking = 'complexForms'">
         <span>Adicionar forma complexa</span>
       </button>
-    </section>
+    </SrPanel>
 
-    <section v-if="has('powers')" class="block">
-      <h2>Poderes de adepto</h2>
+    <SrPanel v-if="has('powers')" title="Poderes de adepto" class="block">
       <div
         v-if="has('powerPointsKarma')"
         class="stepper"
@@ -567,10 +571,10 @@ useFooter({
           </div>
         </li>
       </ul>
-      <button type="button" class="sr-outline add" @click="picking = 'power'">
+      <button type="button" class="sr-add" @click="picking = 'power'">
         <span>Adicionar poder</span>
       </button>
-    </section>
+    </SrPanel>
   </template>
 
   <PickerSheet
@@ -593,22 +597,7 @@ useFooter({
 }
 
 .block {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  margin-bottom: var(--space-5);
-}
-
-h2 {
-  margin: 0;
-  font-size: 1.0625rem;
-  font-weight: 700;
-}
-
-h2.small {
-  font-size: var(--text-xs);
-  font-weight: 600;
-  color: var(--color-text-muted);
+  margin-bottom: var(--space-4);
 }
 
 ul {
@@ -656,11 +645,15 @@ li.row {
 }
 
 [aria-checked='true'] .ring {
-  border-color: var(--sr-pen);
+  border-color: var(--color-accent);
 }
 
 [aria-checked='true'] .ring span {
-  background: var(--sr-pen);
+  background: var(--color-accent);
+}
+
+.option:last-child {
+  border-bottom: 0;
 }
 
 [aria-checked='true'] .name,
@@ -771,17 +764,5 @@ select {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
-}
-
-.add {
-  align-self: flex-start;
-  min-height: var(--touch-min);
-  font: inherit;
-  font-size: var(--text-sm);
-  font-weight: 600;
-}
-
-.add > span {
-  padding: 0 14px;
 }
 </style>

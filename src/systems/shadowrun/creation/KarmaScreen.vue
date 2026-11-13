@@ -9,6 +9,7 @@ import type { Contact, Sheet } from '../rules/validate'
 import BudgetBoxes from '../ui/BudgetBoxes.vue'
 import NumberStepper from '../ui/NumberStepper.vue'
 import PickerSheet, { type PickerItem } from '../ui/PickerSheet.vue'
+import SrPanel from '../ui/SrPanel.vue'
 import { nameOf, useCatalogs } from './catalogs'
 import type { Edit } from './edit'
 import { useFooter } from './footer'
@@ -258,15 +259,16 @@ useFooter({
 </script>
 
 <template>
-  <div class="sticky">
-    <BudgetBoxes v-if="karma" label="Carma" :total="karma.total" :spent="karma.spent" />
-    <p class="intro">
-      Até {{ mech.creation.karmaCarryOver }} de carma passa para o jogo; o resto se perde.
-    </p>
+  <div class="sr-sticky">
+    <div class="sr-card">
+      <BudgetBoxes v-if="karma" label="Carma" :total="karma.total" :spent="karma.spent" />
+      <p class="intro">
+        Até {{ mech.creation.karmaCarryOver }} de carma passa para o jogo; o resto se perde.
+      </p>
+    </div>
   </div>
 
-  <section class="side">
-    <h2>Atributos</h2>
+  <SrPanel title="Atributos" class="side">
     <ul>
       <li v-for="a in attributes" :key="a.id" :class="['line', { flagged: problems.has(a.id) }]">
         <span class="text">
@@ -289,10 +291,9 @@ useFooter({
         />
       </li>
     </ul>
-  </section>
+  </SrPanel>
 
-  <section class="side">
-    <h2>Perícias</h2>
+  <SrPanel title="Perícias" class="side">
     <ul>
       <li v-for="s in active" :key="s.id" :class="['line', { flagged: problems.has(s.id) }]">
         <span class="text">
@@ -333,13 +334,12 @@ useFooter({
         />
       </li>
     </ul>
-    <button type="button" class="sr-outline add" @click="picking = true">
+    <button type="button" class="sr-add" @click="picking = true">
       <span>Comprar perícia nova</span>
     </button>
-  </section>
+  </SrPanel>
 
-  <section v-if="bound" class="side">
-    <h2>{{ bound.title }}</h2>
+  <SrPanel v-if="bound" :title="bound.title" class="side">
     <p class="intro">Cada {{ bound.one }} custa 1 de carma; até {{ cha }}, o Carisma.</p>
     <ul>
       <li v-for="x in boundItems" :key="x.key" class="block">
@@ -367,18 +367,12 @@ useFooter({
         <NxButton variant="text" class="remove" @click="removeBound(x.key)">Remover</NxButton>
       </li>
     </ul>
-    <button
-      type="button"
-      class="sr-outline add"
-      :disabled="boundItems.length >= cha"
-      @click="addBound"
-    >
+    <button type="button" class="sr-add" :disabled="boundItems.length >= cha" @click="addBound">
       <span>{{ bound.add }}</span>
     </button>
-  </section>
+  </SrPanel>
 
-  <section class="side">
-    <h2>Contatos</h2>
+  <SrPanel title="Contatos" class="side">
     <BudgetBoxes
       v-if="free"
       label="Carma gratuito em contatos"
@@ -437,10 +431,10 @@ useFooter({
         >
       </li>
     </ul>
-    <button type="button" class="sr-outline add" @click="addContact">
+    <button type="button" class="sr-add" @click="addContact">
       <span>Adicionar contato</span>
     </button>
-  </section>
+  </SrPanel>
 
   <PickerSheet
     :open="picking"
@@ -456,20 +450,6 @@ useFooter({
 </template>
 
 <style scoped>
-/* O orçamento fica parado; a lista rola por baixo. */
-.sticky {
-  position: sticky;
-  top: 0;
-  z-index: var(--z-sticky);
-  margin: calc(-1 * var(--space-5)) calc(-1 * var(--space-4)) var(--space-4);
-  padding: 14px var(--space-4) var(--space-3);
-  background: var(--color-surface);
-  border-bottom: var(--border-width) solid var(--color-rule);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
 .intro {
   margin: 0;
   font-size: var(--text-sm);
@@ -477,16 +457,7 @@ useFooter({
 }
 
 .side {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-bottom: var(--space-5);
-}
-
-h2 {
-  margin: 0;
-  font-size: 1.0625rem;
-  font-weight: 700;
+  margin-bottom: var(--space-4);
 }
 
 ul {
@@ -588,17 +559,5 @@ input[type='text'] {
 .remove {
   align-self: flex-start;
   color: var(--color-danger);
-}
-
-.add {
-  align-self: flex-start;
-  min-height: var(--touch-min);
-  font: inherit;
-  font-size: var(--text-sm);
-  font-weight: 600;
-}
-
-.add > span {
-  padding: 0 14px;
 }
 </style>

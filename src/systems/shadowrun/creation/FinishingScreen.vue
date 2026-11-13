@@ -7,6 +7,7 @@ import type { Violation } from '@/core/rules/system'
 import NxButton from '@/core/ui/NxButton.vue'
 import type { Derived } from '../rules'
 import type { Sheet } from '../rules/validate'
+import SrPanel from '../ui/SrPanel.vue'
 import { nameOf, useCatalogs } from './catalogs'
 import type { Edit } from './edit'
 import { useFooter } from './footer'
@@ -94,8 +95,7 @@ useFooter({
     </span>
   </article>
 
-  <section class="side">
-    <h2>Dados pessoais</h2>
+  <SrPanel title="Dados pessoais" class="side">
     <div class="fields">
       <div v-for="f in fields" :key="f.id" class="field">
         <label class="label" :for="`identity-${f.id}`">
@@ -118,10 +118,9 @@ useFooter({
         @change="setField('notes', ($event.target as HTMLTextAreaElement).value)"
       />
     </div>
-  </section>
+  </SrPanel>
 
-  <section class="side">
-    <h2>Finalizar</h2>
+  <SrPanel title="Finalizar" class="side">
     <ul v-if="pending.length" class="pending">
       <li v-for="p in pending" :key="p.step">
         <span
@@ -135,7 +134,7 @@ useFooter({
     <NxButton :disabled="pending.length > 0 || busy" @click="finish">
       {{ busy ? 'Finalizando…' : 'Finalizar ficha' }}
     </NxButton>
-  </section>
+  </SrPanel>
 </template>
 
 <style scoped>
@@ -143,8 +142,8 @@ useFooter({
   display: flex;
   flex-direction: column;
   gap: 4px;
-  margin-bottom: var(--space-5);
-  padding: var(--space-4) 18px;
+  margin-bottom: var(--space-4);
+  padding: 14px 18px var(--space-4);
   background-color: var(--sr-slate);
   background-image: repeating-linear-gradient(
     0deg,
@@ -152,7 +151,7 @@ useFooter({
     transparent 1px 4px
   );
   color: var(--sr-on-dark);
-  clip-path: var(--sr-chamfer-large);
+  border-radius: var(--nx-radius-card);
 }
 
 .kicker {
@@ -176,16 +175,7 @@ useFooter({
 }
 
 .side {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  margin-bottom: var(--space-5);
-}
-
-h2 {
-  margin: 0;
-  font-size: 1.0625rem;
-  font-weight: 700;
+  margin-bottom: var(--space-4);
 }
 
 .fields {
@@ -246,7 +236,7 @@ textarea {
 }
 
 .pending a {
-  color: var(--sr-pen);
+  color: var(--color-accent);
   font-weight: 600;
 }
 </style>

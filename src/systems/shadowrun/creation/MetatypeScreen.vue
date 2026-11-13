@@ -111,12 +111,12 @@ useFooter({
 
 .option {
   background: var(--color-surface-raised);
-  box-shadow: inset 0 0 0 1px var(--color-border);
+  box-shadow: inset 0 0 0 1px var(--color-rule);
   border-radius: var(--nx-radius-card);
 }
 
 .option.on {
-  box-shadow: inset 0 0 0 2px var(--sr-carmine);
+  box-shadow: inset 0 0 0 2px var(--color-accent);
 }
 
 button {
@@ -152,11 +152,11 @@ button {
 }
 
 .on .ring {
-  border-color: var(--sr-pen);
+  border-color: var(--color-accent);
 }
 
 .on .ring span {
-  background: var(--sr-pen);
+  background: var(--color-accent);
 }
 
 .text {

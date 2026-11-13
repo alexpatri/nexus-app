@@ -60,7 +60,6 @@ const groups = computed(() =>
     { title: 'Mentais', category: 'mental' },
   ].map((g) => ({
     title: g.title,
-    physical: g.category === 'physical',
     rows: c.attributes.filter((a) => a.category === g.category).map((a) => row(a.id)),
   })),
 )
@@ -102,9 +101,10 @@ useFooter({
     As faixas dos atributos vêm do metatipo. Volte e escolha um antes de distribuir os pontos.
   </p>
   <template v-else>
-    <div class="sticky">
+    <div class="sr-sticky">
       <BudgetBoxes
         v-if="budget"
+        class="sr-card"
         label="Pontos de atributo"
         :total="budget.total"
         :spent="budget.spent"
@@ -113,36 +113,38 @@ useFooter({
     </div>
 
     <SrPanel v-for="g in groups" :key="g.title" :title="g.title" class="group">
-      <div v-for="r in g.rows" :key="r.id" class="row">
-        <div class="label">
-          <span :class="['name', { physical: g.physical }]">{{ r.name }}</span>
-          <span class="hint">{{ r.hint }}</span>
+      <div class="rows">
+        <div v-for="r in g.rows" :key="r.id" class="row">
+          <div class="label">
+            <span class="name">{{ r.name }}</span>
+            <span class="hint">{{ r.hint }}</span>
+          </div>
+          <button
+            type="button"
+            class="sr-outline step"
+            :aria-label="`Baixar ${r.name}`"
+            :disabled="r.points === 0"
+            @click="bump(r.id, -1)"
+          >
+            <span>−</span>
+          </button>
+          <output
+            :class="['value', 'numeric', { flagged: flagged.has(r.id) }]"
+            :aria-label="`${r.name} ${r.value}`"
+            aria-live="polite"
+          >
+            {{ r.value }}
+          </output>
+          <button
+            type="button"
+            class="sr-outline step"
+            :aria-label="`Subir ${r.name}`"
+            :disabled="r.atMax"
+            @click="bump(r.id, 1)"
+          >
+            <span>+</span>
+          </button>
         </div>
-        <button
-          type="button"
-          class="sr-outline step"
-          :aria-label="`Baixar ${r.name}`"
-          :disabled="r.points === 0"
-          @click="bump(r.id, -1)"
-        >
-          <span>−</span>
-        </button>
-        <output
-          :class="['value', 'numeric', { flagged: flagged.has(r.id) }]"
-          :aria-label="`${r.name} ${r.value}`"
-          aria-live="polite"
-        >
-          {{ r.value }}
-        </output>
-        <button
-          type="button"
-          class="sr-outline step"
-          :aria-label="`Subir ${r.name}`"
-          :disabled="r.atMax"
-          @click="bump(r.id, 1)"
-        >
-          <span>+</span>
-        </button>
       </div>
     </SrPanel>
 
@@ -209,23 +211,13 @@ useFooter({
   max-width: 34em;
 }
 
-/* O orçamento fica parado; a lista rola por baixo. */
-.sticky {
-  position: sticky;
-  top: 0;
-  z-index: var(--z-sticky);
-  margin: calc(-1 * var(--space-5)) calc(-1 * var(--space-4)) var(--space-4);
-  padding: 14px var(--space-4) var(--space-3);
-  background: var(--color-surface);
-  border-bottom: var(--border-width) solid var(--color-rule);
-}
-
 .group {
-  margin-bottom: var(--space-5);
+  margin-bottom: var(--space-4);
 }
 
 .special-budget {
-  margin: var(--space-3) 0 var(--space-1);
+  padding-bottom: var(--space-2);
+  border-bottom: var(--border-width) solid var(--color-surface-sunken);
 }
 
 .row {
@@ -249,14 +241,8 @@ useFooter({
 }
 
 .name {
-  font-family: var(--font-numeric);
-  font-size: 1.1875rem;
+  font-size: 1.0625rem;
   font-weight: 600;
-}
-
-/* Atributos físicos em carmim, como na ficha do livro. */
-.name.physical {
-  color: var(--sr-carmine);
 }
 
 .hint {
@@ -276,8 +262,8 @@ useFooter({
   width: 36px;
   text-align: center;
   color: var(--sr-pen);
-  font-size: 1.625rem;
-  font-weight: 700;
+  font-size: 1.75rem;
+  font-weight: 600;
 }
 
 /* Violação: o número em vermelho de alerta com sublinhado grosso. */

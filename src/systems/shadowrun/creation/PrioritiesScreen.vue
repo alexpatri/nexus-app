@@ -4,6 +4,7 @@ import { computed } from 'vue'
 import { useCatalogs } from './catalogs'
 import type { Edit } from './edit'
 import { useFooter } from './footer'
+import SrPanel from '../ui/SrPanel.vue'
 import { assign, describe, letters, type Priorities } from './priorities'
 
 const props = defineProps<{ data: Record<string, unknown>; edit: Edit }>()
@@ -51,8 +52,13 @@ useFooter({
     Distribua as letras de A a E entre as cinco colunas. Cada letra vale para uma coluna só; tocar
     numa letra já usada troca as duas de lugar.
   </p>
-  <section v-for="col in c.columns" :key="col.id" class="column">
-    <h2 :id="`priority-${col.id}`">{{ col.name }}</h2>
+  <SrPanel
+    v-for="col in c.columns"
+    :key="col.id"
+    :title="col.name"
+    :title-id="`priority-${col.id}`"
+    class="column"
+  >
     <div role="radiogroup" :aria-labelledby="`priority-${col.id}`" class="letters">
       <button
         v-for="l in letters"
@@ -61,7 +67,7 @@ useFooter({
         role="radio"
         :aria-checked="chosen[col.id] === l"
         :aria-label="label(col.id, l)"
-        :class="['letter', state(col.id, l)]"
+        :class="['letter', 'numeric', state(col.id, l)]"
         @click="pick(col.id, l)"
       >
         {{ l }}
@@ -70,7 +76,7 @@ useFooter({
     <p :class="['gives', { empty: !chosen[col.id] }]">
       {{ chosen[col.id] ? describe(c, col.id, chosen[col.id]!) : 'Ainda sem prioridade.' }}
     </p>
-  </section>
+  </SrPanel>
 </template>
 
 <style scoped>
@@ -79,53 +85,47 @@ useFooter({
   font-size: var(--text-sm);
   line-height: 1.5;
   max-width: 34em;
+  color: var(--color-text-muted);
 }
 
 .column {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 0 0 var(--space-5);
+  margin-bottom: var(--space-4);
 }
 
+/* A seleção segmentada do Nexus (Tamanho do texto), com a tinta do sistema. */
 .letters {
-  display: flex;
-  gap: var(--space-2);
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-control);
+  overflow: hidden;
 }
 
 .letter {
-  width: 52px;
   height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   padding: 0;
   border: 0;
-  font-family: var(--font-numeric);
+  border-left: var(--border-width) solid var(--color-border);
+  background: var(--color-surface-raised);
+  color: var(--color-text);
   font-size: 1.375rem;
+  font-weight: 700;
   cursor: pointer;
-  border-radius: var(--radius-control);
 }
 
-.free {
-  font-weight: 700;
-  color: var(--color-text);
-  background: var(--color-surface-raised);
-  box-shadow: inset 0 0 0 1px var(--sr-coal);
+.letter:first-child {
+  border-left: 0;
 }
 
 .picked {
-  font-weight: 700;
-  color: var(--sr-on-dark);
-  background: var(--sr-carmine);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
 }
 
 /* Letra já usada em outra coluna: riscada, ainda clicável para trocar. */
 .used {
   font-weight: 500;
   color: var(--color-text-muted);
-  background: transparent;
-  box-shadow: inset 0 0 0 1px var(--color-rule);
   text-decoration: line-through;
   text-decoration-thickness: 2px;
 }

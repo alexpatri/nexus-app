@@ -548,7 +548,7 @@ const hints: Record<Tab, string> = {
     <button
       v-else
       type="button"
-      class="sr-outline add"
+      class="sr-add"
       @click="
         tab === 'active'
           ? (picking = 'skill')
@@ -607,9 +607,9 @@ const hints: Record<Tab, string> = {
 }
 
 [role='tab'][aria-selected='true'] {
-  color: var(--sr-carmine);
+  color: var(--color-accent);
   font-weight: 700;
-  box-shadow: inset 0 -3px 0 var(--sr-carmine);
+  box-shadow: inset 0 -3px 0 var(--color-accent);
 }
 
 .tab-budget {
@@ -623,6 +623,10 @@ const hints: Record<Tab, string> = {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-width) solid var(--color-rule);
+  border-radius: var(--nx-radius-card);
+  background: var(--color-surface-raised);
 }
 
 .hint {
@@ -640,6 +644,10 @@ ul {
 
 li {
   border-bottom: var(--border-width) solid var(--color-surface-sunken);
+}
+
+li:last-child {
+  border-bottom: 0;
 }
 
 .row {
@@ -775,17 +783,5 @@ input[type='text'] {
 .remove {
   align-self: flex-start;
   color: var(--color-danger);
-}
-
-.add {
-  align-self: flex-start;
-  min-height: var(--touch-min);
-  font: inherit;
-  font-size: var(--text-sm);
-  font-weight: 600;
-}
-
-.add > span {
-  padding: 0 14px;
 }
 </style>
