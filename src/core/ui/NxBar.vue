@@ -9,7 +9,7 @@ withDefaults(defineProps<{ back?: string; backLabel?: string; band?: string }>()
 </script>
 
 <template>
-  <IonHeader class="ion-no-border">
+  <IonHeader class="ion-no-border" :class="{ ruled: !band }">
     <IonToolbar>
       <div class="bar" :class="{ 'with-back': back }">
         <IonButtons v-if="back">
@@ -23,6 +23,11 @@ withDefaults(defineProps<{ back?: string; backLabel?: string; band?: string }>()
 </template>
 
 <style scoped>
+/* Fio sob a barra, como o do rodapé; com a faixa da marca, ela já separa. */
+.ruled {
+  border-bottom: var(--border-width) solid var(--color-rule);
+}
+
 .band {
   height: 10px;
 }
