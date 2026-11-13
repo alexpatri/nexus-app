@@ -122,12 +122,10 @@ useFooter({
   color: var(--color-on-accent);
 }
 
-/* Letra já usada em outra coluna: riscada, ainda clicável para trocar. */
+/* Letra já usada em outra coluna: caixa cinza, ainda clicável para trocar. */
 .used {
-  font-weight: 500;
+  background: var(--color-surface-sunken);
   color: var(--color-text-muted);
-  text-decoration: line-through;
-  text-decoration-thickness: 2px;
 }
 
 .gives {
