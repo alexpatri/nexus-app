@@ -44,7 +44,7 @@ const tab = ref('summary')
 const identity = computed(() => sheet.value.identity ?? {})
 const attr = (id: string) => derived.value?.attributes?.[id]
 const grid = ['bod', 'agi', 'rea', 'str', 'wil', 'log', 'int', 'cha']
-const abbr = (id: string) => c.attributes.find((a) => a.id === id)?.abbr ?? id
+const attrName = (id: string) => c.attributes.find((a) => a.id === id)?.name ?? id
 // Monitor como na ficha do livro: linhas de 3 caixas, com a penalidade de
 // ferimento ao lado de cada linha.
 const monitor = (n = 0) =>
@@ -246,49 +246,53 @@ const magic = computed(() => {
           </div>
         </SrPanel>
 
-        <section aria-label="Atributos" class="attrs">
-          <div class="attrs-head">
-            <span v-for="id in grid" :key="id">{{ abbr(id) }}</span>
-          </div>
-          <div class="attrs-values numeric">
-            <span v-for="id in grid" :key="id">
-              {{ attr(id)?.natural
-              }}<span v-if="attr(id) && attr(id)!.augmented !== attr(id)!.natural" class="aug">
-                ({{ attr(id)!.augmented }})</span
-              >
-            </span>
-          </div>
-        </section>
+        <SrPanel title="Atributos">
+          <dl class="cells four">
+            <div v-for="id in grid" :key="id">
+              <dt>{{ attrName(id) }}</dt>
+              <dd class="numeric">
+                {{ attr(id)?.natural
+                }}<span v-if="attr(id) && attr(id)!.augmented !== attr(id)!.natural" class="aug">
+                  ({{ attr(id)!.augmented }})</span
+                >
+              </dd>
+            </div>
+          </dl>
+        </SrPanel>
 
-        <dl class="stats">
-          <div>
-            <dt>Limite Físico</dt>
-            <dd class="numeric">{{ derived?.limits?.physical }}</dd>
-          </div>
-          <div>
-            <dt>Limite Mental</dt>
-            <dd class="numeric">{{ derived?.limits?.mental }}</dd>
-          </div>
-          <div>
-            <dt>Limite Social</dt>
-            <dd class="numeric">{{ derived?.limits?.social }}</dd>
-          </div>
-          <div>
-            <dt>Iniciativa</dt>
-            <dd class="numeric">
-              {{ derived?.initiative?.physical?.base }} +
-              {{ derived?.initiative?.physical?.dice }}D6
-            </dd>
-          </div>
-          <div>
-            <dt>Armadura</dt>
-            <dd class="numeric">{{ derived?.armor }}</dd>
-          </div>
-          <div>
-            <dt>Movimento</dt>
-            <dd class="numeric">{{ derived?.movement?.walk }} / {{ derived?.movement?.run }} m</dd>
-          </div>
-        </dl>
+        <SrPanel title="Limites e iniciativa">
+          <dl class="cells three">
+            <div>
+              <dt>Limite físico</dt>
+              <dd class="numeric">{{ derived?.limits?.physical }}</dd>
+            </div>
+            <div>
+              <dt>Limite mental</dt>
+              <dd class="numeric">{{ derived?.limits?.mental }}</dd>
+            </div>
+            <div>
+              <dt>Limite social</dt>
+              <dd class="numeric">{{ derived?.limits?.social }}</dd>
+            </div>
+            <div>
+              <dt>Iniciativa</dt>
+              <dd class="numeric">
+                {{ derived?.initiative?.physical?.base }} +
+                {{ derived?.initiative?.physical?.dice }}D6
+              </dd>
+            </div>
+            <div>
+              <dt>Armadura</dt>
+              <dd class="numeric">{{ derived?.armor }}</dd>
+            </div>
+            <div>
+              <dt>Movimento</dt>
+              <dd class="numeric">
+                {{ derived?.movement?.walk }} / {{ derived?.movement?.run }} m
+              </dd>
+            </div>
+          </dl>
+        </SrPanel>
         <p v-if="awakened" class="line">
           {{ awakened }}
           <strong class="numeric">{{ attr(awakened === 'Magia' ? 'mag' : 'res')?.natural }}</strong>
@@ -414,6 +418,7 @@ h1 {
   color: var(--color-text);
   font-weight: 700;
   font-size: var(--text-sm);
+  text-decoration: none;
 }
 
 .content {
@@ -431,7 +436,7 @@ h1 {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: var(--space-4) 18px;
+  padding: 14px 18px var(--space-4);
   background-color: var(--sr-slate);
   background-image: repeating-linear-gradient(
     0deg,
@@ -439,7 +444,7 @@ h1 {
     transparent 1px 4px
   );
   color: var(--sr-on-dark);
-  clip-path: var(--sr-chamfer-large);
+  border-radius: var(--nx-radius-card);
 }
 
 .sin-line {
@@ -496,7 +501,6 @@ h1 {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-5);
-  padding: var(--space-3) 0;
 }
 
 .monitor {
@@ -506,21 +510,21 @@ h1 {
 }
 
 .label {
-  font-family: var(--font-numeric);
-  font-size: 1rem;
+  font-size: 0.875rem;
   font-weight: 600;
 }
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(3, 22px) 26px;
+  grid-template-columns: repeat(3, 20px) 26px;
   gap: 3px;
   align-items: center;
 }
 
 .box {
-  height: 22px;
-  border: 1px solid var(--sr-carmine);
+  height: 20px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
   background: var(--color-surface-raised);
 }
 
@@ -533,65 +537,55 @@ h1 {
   padding-left: 4px;
   font-size: 0.875rem;
   font-weight: 700;
-  color: var(--sr-carmine);
+  color: var(--color-accent);
 }
 
 .edge {
   max-width: 44px;
 }
 
-/* Faixa de atributos do bloco de arquétipo do livro. */
-.attrs {
-  display: flex;
-  flex-direction: column;
-  font-family: var(--font-numeric);
-  text-align: center;
-}
-
-.attrs-head,
-.attrs-values {
+/* Grade de valores dentro do cartão, separada por fios. */
+.cells {
+  margin: calc(-1 * var(--space-3)) calc(-1 * var(--space-4));
   display: grid;
-  grid-template-columns: repeat(8, minmax(0, 1fr));
 }
 
-.attrs-head {
-  padding: 5px 0;
-  background: var(--sr-coal);
-  color: var(--sr-amber);
-  font-size: 0.9375rem;
-  font-weight: 600;
+.cells.four {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
-.attrs-values {
-  padding: 6px 0;
-  background: var(--sr-slate-2);
-  color: var(--sr-on-dark);
-  font-size: 1.3125rem;
-  font-weight: 600;
+.cells.three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.cells div {
+  min-width: 0;
+  padding: var(--space-2) var(--space-3) 10px;
+  border-top: var(--border-width) solid var(--color-rule);
+  border-left: var(--border-width) solid var(--color-rule);
+}
+
+.four div:nth-child(-n + 4),
+.three div:nth-child(-n + 3) {
+  border-top: 0;
+}
+
+.four div:nth-child(4n + 1),
+.three div:nth-child(3n + 1) {
+  border-left: 0;
 }
 
 .aug {
-  font-size: 0.9375rem;
-  color: var(--sr-amber);
-}
-
-.stats {
-  margin: 0;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
-}
-
-.stats div {
-  padding: var(--space-2) 10px;
-  background: var(--color-surface-raised);
-  box-shadow: inset 0 0 0 1px var(--color-rule);
-  clip-path: var(--sr-chamfer-small);
+  font-size: 1rem;
+  color: var(--color-accent);
 }
 
 dt {
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 dd {
@@ -601,7 +595,7 @@ dd {
 }
 
 .list {
-  margin: 0 calc(-1 * var(--space-3));
+  margin: calc(-1 * var(--space-3)) calc(-1 * var(--space-4));
   padding: 0;
   list-style: none;
 }
@@ -612,7 +606,7 @@ dd {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  padding: var(--space-1) var(--space-3);
+  padding: var(--space-1) var(--space-4);
 }
 
 .list li:nth-child(even) {
@@ -620,8 +614,7 @@ dd {
 }
 
 .item-name {
-  font-family: var(--font-numeric);
-  font-size: 1.125rem;
+  font-size: var(--text-md);
   font-weight: 600;
 }
 
@@ -653,7 +646,7 @@ dd {
 .tabs {
   display: flex;
   padding: 0 var(--space-1) var(--space-3);
-  background: var(--color-surface-raised);
+  background: var(--color-surface);
   border-top: var(--border-width) solid var(--color-rule);
 }
 
@@ -673,7 +666,7 @@ dd {
 }
 
 .tabs button[aria-selected='true'] {
-  color: var(--sr-carmine);
+  color: var(--color-accent);
   font-weight: 700;
 }
 
@@ -686,6 +679,6 @@ dd {
   right: 12px;
   height: 3px;
   border-radius: 0 0 3px 3px;
-  background: var(--sr-carmine);
+  background: var(--color-accent);
 }
 </style>
