@@ -240,8 +240,7 @@ li {
 }
 
 .name {
-  font-family: var(--font-numeric);
-  font-size: 1.1875rem;
+  font-size: var(--text-md);
   font-weight: 600;
 }
 

@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-// Nuyen não cabe em caixas: painel de ardósia como o bloco de estatísticas do
-// livro, valor restante grande, total ao lado e barra âmbar; acima do total, em
-// alerta.
+// Nuyen não cabe em segmentos: cartão do Nexus com o valor restante grande,
+// o total ao lado e uma barra contínua; acima do total, em alerta.
 const props = defineProps<{ total: number; spent: number; essence?: string }>()
 
 const fmt = new Intl.NumberFormat('pt-BR')
@@ -40,10 +39,9 @@ const fill = computed(() =>
   flex-direction: column;
   gap: var(--space-2);
   padding: 14px var(--space-4);
-  background: var(--sr-slate);
-  color: var(--sr-on-dark);
-  font-family: var(--font-numeric);
-  clip-path: var(--sr-chamfer);
+  border: var(--border-width) solid var(--color-rule);
+  border-radius: var(--nx-radius-card);
+  background: var(--color-surface-raised);
 }
 
 .line {
@@ -54,47 +52,61 @@ const fill = computed(() =>
 }
 
 .label {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--sr-amber);
+  font-size: var(--text-sm);
+  font-weight: 700;
 }
 
 .essence,
-.total,
 .tail {
-  font-size: 1.0625rem;
-  font-weight: 400;
-  color: var(--sr-on-dark-muted);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.total {
+  font-family: var(--font-numeric);
+  font-size: 1.125rem;
+  color: var(--color-text-muted);
 }
 
 .essence strong {
+  font-family: var(--font-numeric);
   font-size: 1.1875rem;
-  color: var(--sr-on-dark);
+  font-weight: 600;
+  color: var(--color-text);
 }
 
 .left {
+  font-family: var(--font-numeric);
   font-size: 2.125rem;
   font-weight: 600;
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
 
+.left .tail {
+  font-family: var(--font-body);
+  font-weight: 400;
+}
+
 .left.over {
-  color: #ff8a80;
+  color: var(--color-danger);
 }
 
 .bar {
   height: 6px;
-  background: var(--sr-slate-2);
+  border-radius: 3px;
+  background: var(--color-surface-sunken);
+  overflow: hidden;
 }
 
 .bar span {
   display: block;
   height: 100%;
-  background: var(--sr-amber);
+  border-radius: 3px;
+  background: var(--color-accent);
 }
 
 .bar .over {
-  background: #ff8a80;
+  background: var(--color-danger);
 }
 </style>

@@ -1,47 +1,57 @@
 <script setup lang="ts">
-// Painel da ficha do livro: aba carmim inclinada encaixada sobre uma moldura
-// fina de cantos chanfrados.
-defineProps<{ title: string }>()
+// Cartão de seção: o cartão do Nexus com o cabeçalho em carmim, eco das abas
+// da ficha do livro. O valor da seção (custo, total) vai em meta.
+defineProps<{ title: string; titleId?: string }>()
 </script>
 
 <template>
   <section class="panel">
-    <h2 class="tab">{{ title }}</h2>
-    <div class="frame">
-      <div class="inner"><slot /></div>
-    </div>
+    <h2 :id="titleId" class="head">
+      <span>{{ title }}</span>
+      <span v-if="$slots.meta" class="meta numeric"><slot name="meta" /></span>
+    </h2>
+    <div class="body"><slot /></div>
   </section>
 </template>
 
 <style scoped>
 .panel {
+  border: var(--border-width) solid var(--color-rule);
+  border-radius: var(--nx-radius-card);
+  background: var(--color-surface-raised);
+  overflow: hidden;
+}
+
+.head {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 9px var(--space-4);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.meta {
+  font-size: 1rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.body {
   display: flex;
   flex-direction: column;
+  gap: 10px;
+  padding: var(--space-3) var(--space-4);
 }
 
-.tab {
-  align-self: flex-start;
-  margin: 0;
-  padding: 7px 30px 7px 12px;
-  background: var(--sr-carmine);
-  color: var(--sr-on-dark);
-  font-family: var(--font-display);
-  font-size: 0.6875rem;
-  font-weight: 400;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  clip-path: var(--sr-tab);
-}
-
-.frame {
-  padding: 1px;
-  background: var(--sr-carmine);
-  clip-path: var(--sr-chamfer);
-}
-
-.inner {
-  padding: 2px var(--space-3);
-  background: var(--color-surface-raised);
-  clip-path: var(--sr-chamfer);
+/* A última linha de uma lista dentro do cartão não leva fio. */
+.body :deep(ul > li:last-child),
+.body :deep(.row:last-child) {
+  border-bottom: 0;
 }
 </style>

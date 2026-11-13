@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-// Orçamento em caixas (frontend-design-shadowrun.md): gasto em tinta, livre em
-// caixa vazia; acima do total, as caixas a mais ficam em carmim.
-// Com quarters, cada ponto vira quatro caixas agrupadas (pontos de poder).
+// Orçamento em segmentos, como o progresso do cartão de personagem do Nexus:
+// gasto em carmim, livre em fio; acima do total, os segmentos a mais ficam no
+// vermelho de alerta. Com quarters, cada ponto vira quatro segmentos juntos
+// (pontos de poder).
 const props = defineProps<{ label: string; total: number; spent: number; quarters?: boolean }>()
+
+// Acima disso, os segmentos quebram em mais de uma linha.
+const PER_ROW = 24
 
 const per = computed(() => (props.quarters ? 4 : 1))
 const left = computed(() => props.total - props.spent)
@@ -18,6 +22,13 @@ const groups = computed(() => {
   for (let i = 0; i < cells.length; i += per.value) out.push(cells.slice(i, i + per.value))
   return out
 })
+// Linhas do mesmo tamanho: 28 vira 14 + 14, não 24 + 4.
+const columns = computed(() => {
+  const n = groups.value.length
+  if (n === 0) return 1
+  const rows = Math.ceil(n / (props.quarters ? PER_ROW / 4 : PER_ROW))
+  return Math.ceil(n / rows)
+})
 const n = (x: number) => String(Math.abs(x)).replace('.', ',')
 </script>
 
@@ -25,11 +36,16 @@ const n = (x: number) => String(Math.abs(x)).replace('.', ',')
   <section class="budget" :aria-label="`Orçamento: ${label}`">
     <div class="head">
       <span class="label">{{ label }}</span>
-      <span :class="['left', 'numeric', { over: left < 0 }]">
-        {{ left >= 0 ? `${n(left)} de ${n(total)} restantes` : `${n(left)} acima de ${n(total)}` }}
+      <span :class="['left', { over: left < 0 }]">
+        <strong class="numeric">{{ n(left) }}</strong>
+        {{ left >= 0 ? `de ${n(total)} restantes` : `acima de ${n(total)}` }}
       </span>
     </div>
-    <div :class="['boxes', { quarters }]" aria-hidden="true">
+    <div
+      :class="['boxes', { quarters }]"
+      :style="{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }"
+      aria-hidden="true"
+    >
       <span v-for="(g, i) in groups" :key="i" class="cells">
         <span v-for="(b, j) in g" :key="j" :class="b" />
       </span>
@@ -52,47 +68,66 @@ const n = (x: number) => String(Math.abs(x)).replace('.', ',')
 }
 
 .label {
-  font-family: var(--font-numeric);
-  font-size: 1.125rem;
-  font-weight: 600;
+  font-size: var(--text-sm);
+  font-weight: 700;
 }
 
 .left {
-  font-family: var(--font-numeric);
-  font-size: 1.0625rem;
+  font-size: var(--text-sm);
   color: var(--color-text-muted);
+  white-space: nowrap;
 }
 
-.left.over {
+.left strong {
+  font-size: 1.375rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.left.over,
+.left.over strong {
   font-weight: 700;
   color: var(--color-danger);
 }
 
-.boxes,
-.cells {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2px;
+.boxes {
+  display: grid;
+  gap: 3px;
 }
 
 .boxes.quarters {
-  gap: var(--space-2);
+  gap: 6px;
+}
+
+.cells {
+  display: flex;
+  gap: 1px;
 }
 
 .cells > span {
-  width: 12px;
-  height: 12px;
-  border: 1px solid #8e8f8b;
-  background: var(--color-surface-raised);
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--color-rule);
+}
+
+.quarters .cells > span {
+  border-radius: 1px;
+}
+
+.quarters .cells > span:first-child {
+  border-radius: 3px 1px 1px 3px;
+}
+
+.quarters .cells > span:last-child {
+  border-radius: 1px 3px 3px 1px;
 }
 
 .cells > .spent {
-  border-color: var(--sr-coal);
-  background: var(--sr-coal);
+  background: var(--color-accent);
 }
 
 .cells > .over {
-  border-color: var(--color-danger);
   background: var(--color-danger);
 }
 </style>
