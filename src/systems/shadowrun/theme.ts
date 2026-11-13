@@ -6,9 +6,10 @@ import '@fontsource/barlow-condensed/700.css'
 import '@fontsource/michroma/400.css'
 
 import type { Theme, ThemeFont } from '@/design/contract'
+import { nexusTheme } from '@/design/nexus.theme'
 
-// O texto corrido é o do Nexus, para os sistemas conversarem com o shell; os
-// títulos e os dados são do Shadowrun (frontend-design-shadowrun.md).
+// Texto e títulos são do Nexus; o Shadowrun traz a fonte dos números e o
+// Michroma, que só aparece no nome do cartão SIN.
 const body: ThemeFont = { family: "'Atkinson Hyperlegible Next Variable', system-ui, sans-serif" }
 const michroma: ThemeFont = {
   family: "'Michroma', 'Atkinson Hyperlegible Next Variable', sans-serif",
@@ -18,25 +19,16 @@ const barlow: ThemeFont = {
 }
 
 const font = { body, display: michroma, numeric: barlow }
-const shape = { radiusControl: '8px', radiusSheet: '16px', borderWidth: '1px' }
+const shape = nexusTheme.shape
 
-// O papel do livro, um pouco mais claro para a troca com o shell ser suave,
-// com carvão, carmim e âmbar.
+// A anatomia é a do Nexus: as mesmas superfícies, fios e textos. O sistema
+// troca a tinta (carmim) e a fonte dos números (frontend-design-shadowrun.md).
 export const shadowrunTheme = {
   scheme: 'light',
   color: {
-    surface: '#EDEDE9',
-    surfaceRaised: '#F8F8F5',
-    surfaceSunken: '#DEDED9',
-    text: '#1E1F22',
-    textMuted: '#55585E',
-    border: '#55585E',
-    rule: '#C9CAC5',
+    ...nexusTheme.color,
     accent: '#8E1B1E',
     onAccent: '#FFFFFF',
-    danger: '#B42318',
-    onDanger: '#FFFFFF',
-    success: '#146B44',
     focus: '#8E1B1E',
   },
   font,
