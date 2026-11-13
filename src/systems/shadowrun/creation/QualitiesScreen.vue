@@ -12,6 +12,7 @@ import SrPanel from '../ui/SrPanel.vue'
 import { nameOf, useCatalogs } from './catalogs'
 import type { Edit } from './edit'
 import { useFooter } from './footer'
+import { useGuard } from './guard'
 import { newKey } from './keys'
 import { choiceOptions, detailOf, priceOf, qualityMessage, type UiQuality } from './qualities'
 
@@ -57,14 +58,24 @@ const problems = computed(() => {
   return out
 })
 
-function change(key: string, update: (it: QualityItem) => void) {
-  props.edit((data) => {
+const changed =
+  (key: string, update: (it: QualityItem) => void) => (data: Record<string, unknown>) => {
     const list = (data.qualities as QualityItem[]).map((it) => ({ ...it }))
     const it = list.find((x) => x.key === key)!
     update(it)
     data.qualities = list
-  })
+  }
+
+function change(key: string, update: (it: QualityItem) => void) {
+  props.edit(changed(key, update))
 }
+
+const fits = useGuard(
+  () => props.data,
+  () => props.derived,
+)
+const affordable = (key: string, update: (it: QualityItem) => void) =>
+  fits(changed(key, update), 'positiveQualities', 'negativeQualities', 'karma')
 
 function remove(key: string) {
   props.edit((data) => {
@@ -195,7 +206,10 @@ useFooter({
               <button
                 type="button"
                 :aria-label="`Subir o nível de ${q.name}`"
-                :disabled="(it.rating ?? 1) >= q.levels.max"
+                :disabled="
+                  (it.rating ?? 1) >= q.levels.max ||
+                  !affordable(it.key, (x) => (x.rating = (x.rating ?? 1) + 1))
+                "
                 @click="change(it.key, (x) => (x.rating = (x.rating ?? 1) + 1))"
               >
                 +

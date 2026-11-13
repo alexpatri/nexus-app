@@ -11,6 +11,7 @@ import PickerSheet, { type PickerItem } from '../ui/PickerSheet.vue'
 import { nameOf, useCatalogs } from './catalogs'
 import type { Edit } from './edit'
 import { useFooter } from './footer'
+import { useGuard } from './guard'
 import { newKey } from './keys'
 import { abbrOf, skillMessage } from './skills'
 
@@ -56,19 +57,30 @@ const tabs = computed(() =>
 )
 const current = computed(() => tabs.value.find((t) => t.id === tab.value)!)
 
-// Edição de uma seção de skills, limpando o que fica vazio ("ausente é zero").
-function update(change: (s: NonNullable<Sheet['skills']>) => void) {
-  props.edit((data) => {
-    const s = JSON.parse(JSON.stringify(data.skills ?? {})) as NonNullable<Sheet['skills']>
-    change(s)
-    for (const k of ['active', 'groups'] as const) {
-      if (s[k] && Object.keys(s[k]!).length === 0) delete s[k]
-    }
-    for (const k of ['knowledge', 'languages'] as const) if (s[k]?.length === 0) delete s[k]
-    if (Object.keys(s).length > 0) data.skills = s
-    else delete data.skills
-  })
+type SkillsChange = (s: NonNullable<Sheet['skills']>) => void
+
+// Mudança numa seção de skills, limpando o que fica vazio ("ausente é zero").
+const onSkills = (change: SkillsChange) => (data: Record<string, unknown>) => {
+  const s = JSON.parse(JSON.stringify(data.skills ?? {})) as NonNullable<Sheet['skills']>
+  change(s)
+  for (const k of ['active', 'groups'] as const) {
+    if (s[k] && Object.keys(s[k]!).length === 0) delete s[k]
+  }
+  for (const k of ['knowledge', 'languages'] as const) if (s[k]?.length === 0) delete s[k]
+  if (Object.keys(s).length > 0) data.skills = s
+  else delete data.skills
 }
+
+function update(change: SkillsChange) {
+  props.edit(onSkills(change))
+}
+
+const fits = useGuard(
+  () => props.data,
+  () => props.derived,
+)
+const affordable = (change: SkillsChange) =>
+  fits(onSkills(change), 'skills', 'skillGroups', 'knowledge')
 
 const groupOf = (id: string) => c.skills.find((s) => s.id === id)?.group ?? ''
 const groupBought = (id: string) => !!skills.value.groups?.[groupOf(id)]
@@ -136,15 +148,17 @@ const languageRows = computed(() =>
   }),
 )
 
-function setPoints(id: string, points: number) {
-  update((s) => {
+const pointsTo =
+  (id: string, points: number): SkillsChange =>
+  (s) => {
     const b: SkillBuy = { ...s.active?.[id], points }
     if (!points) delete b.points
     s.active = { ...s.active }
     if (Object.keys(b).length) s.active[id] = b
     else delete s.active[id]
-  })
-}
+  }
+
+const setPoints = (id: string, points: number) => update(pointsTo(id, points))
 
 function removeSkill(id: string) {
   update((s) => {
@@ -163,16 +177,19 @@ function setSpecialization(id: string, name: string) {
   })
 }
 
-function setGroup(id: string, points: number) {
-  update((s) => {
+const groupTo =
+  (id: string, points: number): SkillsChange =>
+  (s) => {
     s.groups = { ...s.groups }
     if (points > 0) s.groups[id] = { ...s.groups[id], points }
     else delete s.groups[id]
-  })
-}
+  }
 
-function setListItem(list: 'knowledge' | 'languages', key: string, patch: Record<string, unknown>) {
-  update((s) => {
+const setGroup = (id: string, points: number) => update(groupTo(id, points))
+
+const listItemTo =
+  (list: 'knowledge' | 'languages', key: string, patch: Record<string, unknown>): SkillsChange =>
+  (s) => {
     const items = (s[list] ?? []) as unknown as Record<string, unknown>[]
     s[list] = items.map((x) => {
       if (x.key !== key) return x
@@ -183,8 +200,13 @@ function setListItem(list: 'knowledge' | 'languages', key: string, patch: Record
       }
       return next
     }) as never
-  })
-}
+  }
+
+const setListItem = (
+  list: 'knowledge' | 'languages',
+  key: string,
+  patch: Record<string, unknown>,
+) => update(listItemTo(list, key, patch))
 
 function removeListItem(list: 'knowledge' | 'languages', key: string) {
   update((s) => {
@@ -219,8 +241,20 @@ function startAdding() {
   draftNative.value = !(skills.value.languages ?? []).some((l) => l.native)
 }
 
-const skillItems = computed<PickerItem[]>(() =>
-  [...c.skills]
+// Perícia ou grupo novo no nível 1 custa um ponto, qualquer que seja: basta
+// simular um para saber se ainda cabe.
+const roomFor = (kind: 'skill' | 'group') => {
+  if (kind === 'group') {
+    const g = c.groups.find((x) => !skills.value.groups?.[x.id])
+    return !g || affordable(groupTo(g.id, 1))
+  }
+  const sk = c.skills.find((x) => !skills.value.active?.[x.id] && !groupBought(x.id))
+  return !sk || affordable(pointsTo(sk.id, 1))
+}
+
+const skillItems = computed<PickerItem[]>(() => {
+  const room = roomFor('skill')
+  return [...c.skills]
     .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
     .map((s) => ({
       id: s.id,
@@ -235,12 +269,15 @@ const skillItems = computed<PickerItem[]>(() =>
           ? `Grupo ${nameOf(c.groups, s.group ?? '')} já comprado`
           : skills.value.active?.[s.id]
             ? 'Já está na ficha'
-            : undefined,
-    })),
-)
+            : room
+              ? undefined
+              : 'Sem pontos de perícia',
+    }))
+})
 
-const groupItems = computed<PickerItem[]>(() =>
-  [...c.groups]
+const groupItems = computed<PickerItem[]>(() => {
+  const room = roomFor('group')
+  return [...c.groups]
     .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
     .map((g) => ({
       id: g.id,
@@ -253,9 +290,11 @@ const groupItems = computed<PickerItem[]>(() =>
           ? 'Só para despertos'
           : g.skills.some((m) => (skills.value.active?.[m]?.points ?? 0) > 0)
             ? 'Uma perícia do grupo já tem pontos'
-            : undefined,
-    })),
-)
+            : room
+              ? undefined
+              : 'Sem pontos de grupo',
+    }))
+})
 
 function pick(id: string) {
   if (picking.value === 'group') setGroup(id, 1)
@@ -355,7 +394,9 @@ const hints: Record<Tab, string> = {
               <button
                 type="button"
                 :aria-label="`Subir ${r.name}`"
-                :disabled="r.rating >= skillMax(r.id)"
+                :disabled="
+                  r.rating >= skillMax(r.id) || !affordable(pointsTo(r.id, (r.b.points ?? 0) + 1))
+                "
                 @click="setPoints(r.id, (r.b.points ?? 0) + 1)"
               >
                 +
@@ -407,7 +448,9 @@ const hints: Record<Tab, string> = {
               <button
                 type="button"
                 :aria-label="`Subir ${g.name}`"
-                :disabled="g.rating >= c.skillMaxRating"
+                :disabled="
+                  g.rating >= c.skillMaxRating || !affordable(groupTo(g.id, (g.b.points ?? 0) + 1))
+                "
                 @click="setGroup(g.id, (g.b.points ?? 0) + 1)"
               >
                 +
@@ -452,7 +495,10 @@ const hints: Record<Tab, string> = {
               <button
                 type="button"
                 :aria-label="`Subir ${k.name}`"
-                :disabled="rating >= c.skillMaxRating"
+                :disabled="
+                  rating >= c.skillMaxRating ||
+                  !affordable(listItemTo('knowledge', k.key, { points: (k.points ?? 0) + 1 }))
+                "
                 @click="setListItem('knowledge', k.key, { points: (k.points ?? 0) + 1 })"
               >
                 +
@@ -513,7 +559,10 @@ const hints: Record<Tab, string> = {
               <button
                 type="button"
                 :aria-label="`Subir ${l.name}`"
-                :disabled="(l.points ?? 0) >= c.skillMaxRating"
+                :disabled="
+                  (l.points ?? 0) >= c.skillMaxRating ||
+                  !affordable(listItemTo('languages', l.key, { points: (l.points ?? 0) + 1 }))
+                "
                 @click="setListItem('languages', l.key, { points: (l.points ?? 0) + 1 })"
               >
                 +

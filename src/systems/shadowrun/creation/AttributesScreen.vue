@@ -10,6 +10,7 @@ import { pointsOf, setPoints } from './attributes'
 import { useCatalogs } from './catalogs'
 import type { Edit } from './edit'
 import { useFooter } from './footer'
+import { useGuard } from './guard'
 
 const props = defineProps<{
   data: Record<string, unknown>
@@ -66,9 +67,18 @@ const groups = computed(() =>
 const edge = computed(() => row('edg'))
 const edgeMax = computed(() => metatype.value?.attributes.edg?.max ?? 6)
 
+const step = (id: string, delta: number) => (data: Record<string, unknown>) =>
+  setPoints(data, id, pointsOf(data, id) + delta)
+
 function bump(id: string, delta: number) {
-  props.edit((data) => setPoints(data, id, pointsOf(data, id) + delta))
+  props.edit(step(id, delta))
 }
+
+const fits = useGuard(
+  () => props.data,
+  () => props.derived,
+)
+const canRaise = (id: string) => fits(step(id, 1), 'attributes', 'special')
 
 useFooter({
   status: computed(() => {
@@ -139,7 +149,7 @@ useFooter({
             type="button"
             class="sr-outline step"
             :aria-label="`Subir ${r.name}`"
-            :disabled="r.atMax"
+            :disabled="r.atMax || !canRaise(r.id)"
             @click="bump(r.id, 1)"
           >
             <span>+</span>
@@ -189,7 +199,7 @@ useFooter({
             type="button"
             class="sr-outline step"
             :aria-label="`Subir ${edge.name}`"
-            :disabled="edge.atMax"
+            :disabled="edge.atMax || !canRaise('edg')"
             @click="bump('edg', 1)"
           >
             <span>+</span>

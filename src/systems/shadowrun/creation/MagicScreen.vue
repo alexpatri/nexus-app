@@ -18,6 +18,7 @@ import SrPanel from '../ui/SrPanel.vue'
 import { nameOf, useCatalogs } from './catalogs'
 import type { Edit } from './edit'
 import { useFooter } from './footer'
+import { useGuard } from './guard'
 import { newKey } from './keys'
 import { givesOf, magicMessage, powerPrice } from './magic'
 
@@ -46,23 +47,34 @@ const picking = ref<Picking>()
 const expanded = ref<string>()
 
 // Edita magic, tirando o que fica vazio ("ausente é vazio").
-function update(change: (m: MagicData) => void) {
-  props.edit((data) => {
-    const m = JSON.parse(JSON.stringify(data.magic ?? {})) as MagicData & Record<string, unknown>
-    change(m)
-    for (const [k, v] of Object.entries(m)) {
-      const empty =
-        v === undefined ||
-        v === '' ||
-        v === 0 ||
-        (Array.isArray(v) && v.length === 0) ||
-        (k === 'formulas' && formulaCount(m) === 0)
-      if (empty) delete m[k]
-    }
-    if (Object.keys(m).length > 0) data.magic = m
-    else delete data.magic
-  })
+type MagicChange = (m: MagicData) => void
+
+// Mudança em data.magic, limpando o que fica vazio ("ausente é zero").
+const onMagic = (change: MagicChange) => (data: Record<string, unknown>) => {
+  const m = JSON.parse(JSON.stringify(data.magic ?? {})) as MagicData & Record<string, unknown>
+  change(m)
+  for (const [k, v] of Object.entries(m)) {
+    const empty =
+      v === undefined ||
+      v === '' ||
+      v === 0 ||
+      (Array.isArray(v) && v.length === 0) ||
+      (k === 'formulas' && formulaCount(m) === 0)
+    if (empty) delete m[k]
+  }
+  if (Object.keys(m).length > 0) data.magic = m
+  else delete data.magic
 }
+
+function update(change: MagicChange) {
+  props.edit(onMagic(change))
+}
+
+const fits = useGuard(
+  () => props.data,
+  () => props.derived,
+)
+const affordable = (change: MagicChange) => fits(onMagic(change), 'powerPoints')
 
 // Trocar de despertar mantém só o que o novo usa.
 function setAwakening(id: string) {
@@ -104,22 +116,27 @@ function toggleFormula(group: 'spells' | 'rituals', id: string) {
 
 const powerOf = (id: string) => c.adeptPowers.find((p) => p.id === id)
 
+const powerAdded =
+  (id: string, key: string): MagicChange =>
+  (m) => {
+    const it: PowerItem = { key, id }
+    if (typeof powerOf(id)!.powerPoints !== 'number') it.rating = 1
+    m.powers = [...(m.powers ?? []), it]
+  }
+
 function addPower(id: string) {
   const key = newKey(props.data)
-  const pw = powerOf(id)!
-  update((m) => {
-    const it: PowerItem = { key, id }
-    if (typeof pw.powerPoints !== 'number') it.rating = 1
-    m.powers = [...(m.powers ?? []), it]
-  })
+  update(powerAdded(id, key))
   expanded.value = key
 }
 
-function changePower(key: string, patch: Partial<PowerItem>) {
-  update((m) => {
+const powerTo =
+  (key: string, patch: Partial<PowerItem>): MagicChange =>
+  (m) => {
     m.powers = (m.powers ?? []).map((p) => (p.key === key ? { ...p, ...patch } : p))
-  })
-}
+  }
+
+const changePower = (key: string, patch: Partial<PowerItem>) => update(powerTo(key, patch))
 
 function parameterOptions(id: string): { id: string; name: string }[] {
   const p = powerOf(id)?.parameter
@@ -234,6 +251,7 @@ const pickerItems = computed<PickerItem[]>(() => {
           note: p.parameter ? 'Com alvo a escolher' : 'Sem alvo',
           price: powerPrice(p),
           description: p.desc,
+          blocked: affordable(powerAdded(p.id, 'novo')) ? undefined : 'Sem pontos de poder',
         }))
   }
   return []
@@ -539,6 +557,7 @@ useFooter({
               <button
                 type="button"
                 :aria-label="`Subir o nível de ${nameOf(c.adeptPowers, p.id)}`"
+                :disabled="!affordable(powerTo(p.key, { rating: (p.rating ?? 1) + 1 }))"
                 @click="changePower(p.key, { rating: (p.rating ?? 1) + 1 })"
               >
                 +

@@ -13,6 +13,7 @@ import SrPanel from '../ui/SrPanel.vue'
 import { nameOf, useCatalogs } from './catalogs'
 import type { Edit } from './edit'
 import { useFooter } from './footer'
+import { useGuard } from './guard'
 import { karmaMessage, stepsCost } from './karma'
 import { clone } from './edit'
 import { newKey } from './keys'
@@ -62,16 +63,43 @@ const attributes = computed(() =>
     }),
 )
 
-function setKarma(path: (data: Record<string, unknown>) => Record<string, unknown>, value: number) {
-  props.edit((data) => {
-    const target = path(data)
-    if (value > 0) target.karma = value
-    else delete target.karma
-  })
+type Path = (data: Record<string, unknown>) => Record<string, unknown>
+
+const karmaTo = (path: Path, value: number) => (data: Record<string, unknown>) => {
+  const target = path(data)
+  if (value > 0) target.karma = value
+  else delete target.karma
+}
+
+function setKarma(path: Path, value: number) {
+  props.edit(karmaTo(path, value))
 }
 
 const ensure = (o: Record<string, unknown>, key: string) =>
   (o[key] ??= {}) as Record<string, unknown>
+const attrPath =
+  (id: string): Path =>
+  (d) =>
+    ensure(ensure(d, 'attributes'), id)
+const activePath =
+  (id: string): Path =>
+  (d) =>
+    ensure(ensure(ensure(d, 'skills'), 'active'), id)
+const listPath =
+  (list: 'knowledge' | 'languages', key: string): Path =>
+  (d) =>
+    (d.skills as Record<string, { key: string }[]>)[list]!.find(
+      (x) => x.key === key,
+    ) as unknown as Record<string, unknown>
+
+const fits = useGuard(
+  () => props.data,
+  () => props.derived,
+)
+const affordable = (change: (data: Record<string, unknown>) => void) => fits(change, 'karma')
+// Teto do contador: o do livro, ou o valor atual se o próximo degrau não cabe no carma.
+const cap = (max: number, value: number, next: (data: Record<string, unknown>) => void) =>
+  value < max && !affordable(next) ? value : max
 
 const skillMax = (id: string) => c.skillMaxRating + (fx.value.skillMax[id] ?? 0)
 const active = computed(() => {
@@ -109,7 +137,7 @@ const languages = computed(() =>
 )
 
 function setActiveKarma(id: string, value: number) {
-  setKarma((data) => ensure(ensure(ensure(data, 'skills'), 'active'), id), value)
+  setKarma(activePath(id), value)
   props.edit((data) => {
     const skills = data.skills as { active: Record<string, object> }
     if (Object.keys(skills.active[id]!).length === 0) delete skills.active[id]
@@ -117,10 +145,7 @@ function setActiveKarma(id: string, value: number) {
 }
 
 function setListKarma(list: 'knowledge' | 'languages', key: string, value: number) {
-  setKarma((data) => {
-    const items = (data.skills as Record<string, { key: string }[]>)[list]!
-    return items.find((x) => x.key === key) as unknown as Record<string, unknown>
-  }, value)
+  setKarma(listPath(list, key), value)
 }
 
 const awakening = computed(() => sheet.value.magic?.awakening)
@@ -153,23 +178,26 @@ const boundItems = computed(() =>
 )
 const cha = computed(() => props.derived?.attributes?.cha?.natural ?? 0)
 
-function changeBound(key: string, update: (x: Bound) => void) {
-  const b = bound.value!
-  props.edit((data) => {
+const boundChanged =
+  (key: string, update: (x: Bound) => void) => (data: Record<string, unknown>) => {
     const magic = data.magic as Record<string, Bound[]>
-    const items = clone(magic[b.list] ?? [])
+    const items = clone(magic[bound.value!.list] ?? [])
     update(items.find((x) => x.key === key)!)
-    magic[b.list] = items
-  })
+    magic[bound.value!.list] = items
+  }
+
+function changeBound(key: string, update: (x: Bound) => void) {
+  props.edit(boundChanged(key, update))
+}
+
+const boundAdded = (key: string) => (data: Record<string, unknown>) => {
+  const b = bound.value!
+  const magic = data.magic as Record<string, Bound[]>
+  magic[b.list] = [...(magic[b.list] ?? []), { key, type: b.types[0]!.id, [b.count]: 1 }]
 }
 
 function addBound() {
-  const b = bound.value!
-  const key = newKey(props.data)
-  props.edit((data) => {
-    const magic = data.magic as Record<string, Bound[]>
-    magic[b.list] = [...(magic[b.list] ?? []), { key, type: b.types[0]!.id, [b.count]: 1 }]
-  })
+  props.edit(boundAdded(newKey(props.data)))
 }
 
 function removeBound(key: string) {
@@ -184,22 +212,26 @@ function removeBound(key: string) {
 const contacts = computed(() => sheet.value.contacts ?? [])
 const maxKarma = mech.creation.contacts.maxKarmaPerContact
 
-function changeContact(key: string, update: (x: Contact) => void) {
-  props.edit((data) => {
+const contactChanged =
+  (key: string, update: (x: Contact) => void) => (data: Record<string, unknown>) => {
     const items = clone((data.contacts ?? []) as Contact[])
     update(items.find((x) => x.key === key)!)
     data.contacts = items
-  })
+  }
+
+function changeContact(key: string, update: (x: Contact) => void) {
+  props.edit(contactChanged(key, update))
+}
+
+const contactAdded = (key: string) => (data: Record<string, unknown>) => {
+  data.contacts = [
+    ...((data.contacts ?? []) as Contact[]),
+    { key, name: '', connection: 1, loyalty: 1 },
+  ]
 }
 
 function addContact() {
-  const key = newKey(props.data)
-  props.edit((data) => {
-    data.contacts = [
-      ...((data.contacts ?? []) as Contact[]),
-      { key, name: '', connection: 1, loyalty: 1 },
-    ]
-  })
+  props.edit(contactAdded(newKey(props.data)))
 }
 
 function removeContact(key: string) {
@@ -224,6 +256,9 @@ const problems = computed(() => {
 
 const pickerItems = computed<PickerItem[]>(() => {
   const has = new Set(active.value.map((s) => s.id))
+  // Toda perícia nova custa o mesmo: basta simular uma.
+  const first = c.skills.find((s) => !has.has(s.id))
+  const room = !first || affordable(karmaTo(activePath(first.id), 1))
   return c.skills
     .filter((s) => !has.has(s.id))
     .map((s) => ({
@@ -236,7 +271,9 @@ const pickerItems = computed<PickerItem[]>(() => {
           ? 'Só para despertos'
           : s.category === 'resonance' && !props.derived?.attributes?.res
             ? 'Só para tecnomantes'
-            : undefined,
+            : room
+              ? undefined
+              : 'Sem carma',
     }))
 })
 
@@ -286,7 +323,7 @@ useFooter({
           :label="`carma em ${a.name}`"
           :value="a.karma"
           :min="0"
-          :max="a.karma + Math.max(0, a.room)"
+          :max="cap(a.karma + Math.max(0, a.room), a.karma, karmaTo(attrPath(a.id), a.karma + 1))"
           @change="setKarma((d) => ensure(ensure(d, 'attributes'), a.id), $event)"
         />
       </li>
@@ -311,7 +348,13 @@ useFooter({
           :label="`carma em ${s.name}`"
           :value="s.karma"
           :min="0"
-          :max="s.karma + Math.max(0, skillMax(s.id) - s.rating)"
+          :max="
+            cap(
+              s.karma + Math.max(0, skillMax(s.id) - s.rating),
+              s.karma,
+              karmaTo(activePath(s.id), s.karma + 1),
+            )
+          "
           @change="setActiveKarma(s.id, $event)"
         />
       </li>
@@ -329,7 +372,13 @@ useFooter({
           :label="`carma em ${k.name}`"
           :value="k.karma"
           :min="0"
-          :max="k.karma + Math.max(0, mech.creation.skills.maxRating - k.from - k.karma)"
+          :max="
+            cap(
+              k.karma + Math.max(0, mech.creation.skills.maxRating - k.from - k.karma),
+              k.karma,
+              karmaTo(listPath(k.list, k.key), k.karma + 1),
+            )
+          "
           @change="setListKarma(k.list, k.key, $event)"
         />
       </li>
@@ -361,13 +410,25 @@ useFooter({
             :label="`${bound.unit} de ${nameOf(bound.types, x.type)}`"
             :value="Number(x[bound.count] ?? 0)"
             :min="1"
+            :max="
+              cap(
+                Infinity,
+                Number(x[bound.count] ?? 0),
+                boundChanged(x.key, (y) => (y[bound!.count] = Number(y[bound!.count] ?? 0) + 1)),
+              )
+            "
             @change="changeBound(x.key, (y) => (y[bound!.count] = $event))"
           />
         </div>
         <NxButton variant="text" class="remove" @click="removeBound(x.key)">Remover</NxButton>
       </li>
     </ul>
-    <button type="button" class="sr-add" :disabled="boundItems.length >= cha" @click="addBound">
+    <button
+      type="button"
+      class="sr-add"
+      :disabled="boundItems.length >= cha || !affordable(boundAdded('novo'))"
+      @click="addBound"
+    >
       <span>{{ bound.add }}</span>
     </button>
   </SrPanel>
@@ -410,7 +471,13 @@ useFooter({
               :label="`Conexão de ${ct.name || 'contato'}`"
               :value="ct.connection ?? 1"
               :min="1"
-              :max="Math.min(mech.creation.contacts.maxConnection, maxKarma - (ct.loyalty ?? 1))"
+              :max="
+                cap(
+                  Math.min(mech.creation.contacts.maxConnection, maxKarma - (ct.loyalty ?? 1)),
+                  ct.connection ?? 1,
+                  contactChanged(ct.key, (x) => (x.connection = (x.connection ?? 1) + 1)),
+                )
+              "
               @change="changeContact(ct.key, (x) => (x.connection = $event))"
             />
           </div>
@@ -420,7 +487,13 @@ useFooter({
               :label="`Lealdade de ${ct.name || 'contato'}`"
               :value="ct.loyalty ?? 1"
               :min="1"
-              :max="Math.min(mech.creation.contacts.maxLoyalty, maxKarma - (ct.connection ?? 1))"
+              :max="
+                cap(
+                  Math.min(mech.creation.contacts.maxLoyalty, maxKarma - (ct.connection ?? 1)),
+                  ct.loyalty ?? 1,
+                  contactChanged(ct.key, (x) => (x.loyalty = (x.loyalty ?? 1) + 1)),
+                )
+              "
               @change="changeContact(ct.key, (x) => (x.loyalty = $event))"
             />
           </div>
@@ -431,7 +504,12 @@ useFooter({
         >
       </li>
     </ul>
-    <button type="button" class="sr-add" @click="addContact">
+    <button
+      type="button"
+      class="sr-add"
+      :disabled="!affordable(contactAdded('novo'))"
+      @click="addContact"
+    >
       <span>Adicionar contato</span>
     </button>
   </SrPanel>

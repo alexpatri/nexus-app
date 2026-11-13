@@ -9,6 +9,7 @@ import AttributesScreen from './AttributesScreen.vue'
 import { buildUiCatalogs, uiCatalogs } from './catalogs'
 import type { Edit } from './edit'
 import { provideFooter } from './footer'
+import { provideGuard } from './guard'
 import FinalScreen from './FinalScreen.vue'
 import FinishingScreen from './FinishingScreen.vue'
 import KarmaScreen from './KarmaScreen.vue'
@@ -44,12 +45,23 @@ function setup(
   initial: Record<string, unknown>,
   step?: string,
   extra: (data: Record<string, unknown>) => Record<string, unknown> = () => ({}),
+  draft = true,
 ) {
   const state = reactive({ data: initial })
   const edit: Edit = (change) => change(state.data)
   let footer!: ReturnType<typeof provideFooter>
   const Host = defineComponent(() => {
     footer = provideFooter()
+    provideGuard({
+      draft: computed(() => draft),
+      derive: (data) => {
+        try {
+          return rules.derive(data) as Derived
+        } catch {
+          return undefined
+        }
+      },
+    })
     const derived = computed(() => rules.derive(state.data) as Derived)
     const violations = computed(() =>
       rules.validate(state.data, 'strict').filter((v) => !step || v.step === step),
@@ -162,6 +174,46 @@ describe('AttributesScreen', () => {
       'Só um atributo pode começar no máximo natural: Corpo e Agilidade estão no máximo.',
     )
     expect(s.w.find('[aria-label="Corpo 10"]').classes()).toContain('flagged')
+  })
+
+  it('no rascunho, o + para quando os pontos acabam; na ficha pronta, não', () => {
+    const full = {
+      ...grok(),
+      attributes: {
+        bod: { points: 4 },
+        agi: { points: 3 },
+        rea: { points: 4 },
+        str: { points: 4 },
+        wil: { points: 4 },
+        log: { points: 3 },
+        int: { points: 2 },
+      },
+    }
+    const draft = setup(AttributesScreen, structuredClone(full))
+    expect(draft.status()).toBe('Todos os pontos distribuídos.')
+    expect(draft.w.find('[aria-label="Subir Carisma"]').attributes('disabled')).toBeDefined()
+    expect(draft.w.find('[aria-label="Baixar Corpo"]').attributes('disabled')).toBeUndefined()
+    draft.w.unmount()
+
+    const ready = setup(AttributesScreen, structuredClone(full), undefined, undefined, false)
+    expect(ready.w.find('[aria-label="Subir Carisma"]').attributes('disabled')).toBeUndefined()
+  })
+
+  it('acima do orçamento por troca de prioridade, só deixa descer', () => {
+    const s = setup(AttributesScreen, {
+      ...grok(),
+      priorities: { ...GROK, attributes: 'C', skills: 'A' },
+      attributes: {
+        bod: { points: 4 },
+        agi: { points: 3 },
+        rea: { points: 4 },
+        str: { points: 4 },
+        wil: { points: 4 },
+      },
+    })
+    expect(s.status()).toBe('Tire 3 para caber no orçamento.')
+    expect(s.w.find('[aria-label="Subir Lógica"]').attributes('disabled')).toBeDefined()
+    expect(s.w.find('[aria-label="Baixar Corpo"]').attributes('disabled')).toBeUndefined()
   })
 
   it('troll na B não tem pontos especiais: Trunfo só com carma', () => {
@@ -290,8 +342,18 @@ describe('SkillsScreen', () => {
     expect(rows[1]!.find('.pool').text()).toContain('4')
   })
 
-  it('bloqueia no seletor e adiciona a perícia com nível 1', async () => {
+  it('no rascunho sem pontos, o seletor bloqueia a perícia nova', async () => {
     const s = setup(SkillsScreen, beto().data, 'skills')
+    button('Adicionar perícia').click()
+    await s.w.vm.$nextTick()
+    const etiquette = inBody('.item').find(
+      (b) => b.querySelector('.name')?.textContent === 'Etiqueta',
+    )!
+    expect(etiquette.querySelector('.note')!.textContent).toBe('Sem pontos de perícia')
+  })
+
+  it('bloqueia no seletor e adiciona a perícia com nível 1', async () => {
+    const s = setup(SkillsScreen, beto().data, 'skills', undefined, false)
     button('Adicionar perícia').click()
     await s.w.vm.$nextTick()
     const note = (name: string) =>
@@ -537,8 +599,14 @@ describe('KarmaScreen', () => {
     expect(s.alert()).toBe('O carma gasto passa do total em 1.')
   })
 
-  it('compra Trunfo com carma', async () => {
+  it('no rascunho, o + do carma para quando o próximo degrau não cabe', () => {
     const s = setup(KarmaScreen, fixture('clara-final'), 'karma')
+    expect(button('Aumentar carma em Trunfo').hasAttribute('disabled')).toBe(true)
+    expect(button('Adicionar contato').hasAttribute('disabled')).toBe(false)
+  })
+
+  it('compra Trunfo com carma', async () => {
+    const s = setup(KarmaScreen, fixture('clara-final'), 'karma', undefined, false)
     button('Aumentar carma em Trunfo').click()
     await s.w.vm.$nextTick()
     expect((s.data().attributes as Record<string, { karma?: number }>).edg!.karma).toBe(1)
@@ -563,7 +631,7 @@ describe('KarmaScreen', () => {
   })
 
   it('adiciona contato e trava o + quando chega a 7', async () => {
-    const s = setup(KarmaScreen, fixture('beto-final'), 'karma')
+    const s = setup(KarmaScreen, fixture('beto-final'), 'karma', undefined, false)
     button('Adicionar contato').click()
     await s.w.vm.$nextTick()
     const added = (s.data().contacts as { key: string }[]).at(-1)!
