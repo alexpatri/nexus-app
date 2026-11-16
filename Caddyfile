@@ -1,0 +1,35 @@
+{
+	admin off
+	servers {
+		trusted_proxies static private_ranges
+		trusted_proxies_strict
+	}
+}
+
+:{$PORT:8080} {
+	log
+
+	handle_path /core/* {
+		reverse_proxy {$CORE_ADDR} {
+			header_up X-Client-IP {client_ip}
+		}
+	}
+
+	handle_path /systems/* {
+		encode zstd gzip
+		reverse_proxy {$SYSTEMS_ADDR}
+	}
+
+	handle {
+		encode zstd gzip
+		root * /srv
+		try_files {path} /index.html
+
+		@assets path /assets/*
+		@app not path /assets/*
+		header @assets Cache-Control "public, max-age=31536000, immutable"
+		header @app Cache-Control "no-cache"
+
+		file_server
+	}
+}
