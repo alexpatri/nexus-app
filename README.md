@@ -17,6 +17,17 @@ npm run lint
 npm run build       # type-check + build com service worker
 ```
 
+## Imagem de produção
+
+O `Dockerfile` faz o build e serve o `dist/` com Caddy, que também repassa
+`/core` e `/systems` para as APIs; o app é gerado com essas URLs relativas. O
+desenho do deploy está em `infra-deploy-railway.md`.
+
+```sh
+docker build -t nexus-web .
+docker run -p 8080:8080 -e CORE_ADDR=core:8080 -e SYSTEMS_ADDR=systems:8080 nexus-web
+```
+
 ## Design
 
 `src/design/` guarda o contrato `Theme`/`Brand`, os tokens base, o tema do
