@@ -7,8 +7,11 @@ RUN npm ci
 
 COPY . .
 
-ARG VITE_CORE_URL=/core
-ARG VITE_SYSTEMS_URL=/systems
+# Sem elas o app cai no localhost do dev e o build passaria em silêncio.
+ARG VITE_CORE_URL
+ARG VITE_SYSTEMS_URL
+RUN test -n "$VITE_CORE_URL" && test -n "$VITE_SYSTEMS_URL" \
+ || { echo "defina VITE_CORE_URL e VITE_SYSTEMS_URL" >&2; exit 1; }
 RUN npm run build
 
 FROM caddy:2.11-alpine
