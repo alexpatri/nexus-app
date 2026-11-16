@@ -19,13 +19,15 @@ npm run build       # type-check + build com service worker
 
 ## Imagem de produção
 
-O `Dockerfile` faz o build e serve o `dist/` com Caddy, que também repassa
-`/core` e `/systems` para as APIs; o app é gerado com essas URLs relativas. O
-desenho do deploy está em `infra-deploy-railway.md`.
+O `Dockerfile` faz o build e serve o `dist/` com Caddy. As URLs das APIs entram
+no build e são obrigatórias. O desenho do deploy está no repositório
+`nexus-infra`.
 
 ```sh
-docker build -t nexus-web .
-docker run -p 8080:8080 -e CORE_ADDR=core:8080 -e SYSTEMS_ADDR=systems:8080 nexus-web
+docker build -t nexus-app \
+  --build-arg VITE_CORE_URL=https://api.nexus.ajlab.io/core \
+  --build-arg VITE_SYSTEMS_URL=https://api.nexus.ajlab.io/systems .
+docker run -p 8080:8080 nexus-app
 ```
 
 ## Design
