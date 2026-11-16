@@ -14,6 +14,7 @@ import FinalScreen from './FinalScreen.vue'
 import FinishingScreen from './FinishingScreen.vue'
 import type { Edit } from './edit'
 import { provideFooter } from './footer'
+import { provideGuard } from './guard'
 import MagicScreen from './MagicScreen.vue'
 import MetatypeScreen from './MetatypeScreen.vue'
 import PrioritiesScreen from './PrioritiesScreen.vue'
@@ -47,6 +48,16 @@ const derived = computed(() => {
   } catch {
     return undefined
   }
+})
+provideGuard({
+  draft: computed(() => props.open.sheet.status === 'draft'),
+  derive: (data) => {
+    try {
+      return props.rules.derive(data) as Derived
+    } catch {
+      return undefined
+    }
+  },
 })
 const all = computed(() => props.rules.validate(props.open.data, 'strict'))
 const violations = computed(() => all.value.filter((v) => v.step === current.value.step))
@@ -238,8 +249,8 @@ function reload() {
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: minmax(0, 1fr);
-  gap: 4px;
-  padding: var(--space-2) var(--space-4) 0;
+  gap: 3px;
+  padding: var(--space-3) var(--space-4) 0;
 }
 
 .segments span {
@@ -249,11 +260,11 @@ function reload() {
 }
 
 .segments .done {
-  background: var(--sr-coal);
+  background: var(--color-text);
 }
 
 .segments .current {
-  background: var(--sr-carmine);
+  background: var(--color-accent);
 }
 
 .content {
@@ -263,7 +274,7 @@ function reload() {
 .footer {
   display: flex;
   flex-direction: column;
-  background: var(--color-surface-raised);
+  background: var(--color-surface);
   border-top: var(--border-width) solid var(--color-rule);
 }
 
